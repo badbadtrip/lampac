@@ -1,0 +1,30 @@
+---
+name: lampac
+
+services:
+  lampac:
+    image: ghcr.io/lampac-nextgen/lampac
+    container_name: lampac
+    hostname: lampac
+    restart: unless-stopped
+    ports:
+      - 29118:29118
+    shm_size: 1024mb
+    logging:
+      options:
+        tag: "{{.Name}}"
+    labels:
+      - dev.orbstack.http-port=29118 # HTTPS access via OrbStack
+    volumes:
+      # Passwords
+      - ./lampac-docker/config/passwd:/lampac/passwd
+      # Config
+      - ./lampac-docker/config/development.init.conf:/lampac/init.conf
+      # Modules
+      # - ./lampac-docker/mods/BulbaCrawler:/lampac/mods/BulbaCrawler
+      # Plugins / Override Files
+      - ./lampac-docker/plugins/lampainit.js:/lampac/plugins/override/lampainit.js
+      # # Cache
+      # - ./lampac-docker/cache:/lampac/cache
+      # # Database
+      # - ./lampac-docker/database:/lampac/database

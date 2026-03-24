@@ -1,0 +1,14 @@
+```
+<a href="/amateur/">Amateur</a>
+<a href="/anal/">Anal</a>
+<a href="/asian/">Asian</a>
+<a href="/ass/">Ass</a>
+<a href="/afghan/">Afghan</a>
+<a href="/albanian/">Albanian</a>
+<a href="/algerian/">Algerian</a>
+```
+
+перепиши в формате
+```
+"Amateur": "amateur/{page}/",
+```

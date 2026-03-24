@@ -1,0 +1,39 @@
+---
+name: lampac
+
+services:
+  lampac:
+    image: ghcr.io/lampac-nextgen/lampac
+    container_name: lampac
+    # network_mode: host
+    networks:
+      lampac:
+        ipv4_address: 10.10.10.10
+    ports:
+      - 9118:9118
+    restart: unless-stopped
+    shm_size: 1024mb
+    logging:
+      options:
+        tag: "{{.Name}}"
+    volumes:
+      # Passwords
+      - ./lampac-docker/config/passwd:/lampac/passwd
+      # Config
+      - ./lampac-docker/config/init.conf:/lampac/init.conf
+      # Modules
+      # - ./lampac-docker/mods/BulbaCrawler:/lampac/mods/BulbaCrawler
+      # Plugins / Override Files
+      - ./lampac-docker/plugins/lampainit.js:/lampac/plugins/override/lampainit.js
+      # # Cache
+      # - ./lampac-docker/cache:/lampac/cache
+      # # Database
+      # - ./lampac-docker/database:/lampac/database
+
+networks:
+  lampac:
+    name: lampac
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.10.0/24

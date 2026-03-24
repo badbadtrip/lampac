@@ -1,0 +1,382 @@
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using Online.Models.Alloha;
+using Shared.Attributes;
+using Shared.Models.Online.Settings;
+
+namespace Online.Controllers
+{
+    public class Alloha : BaseOnlineController<AllohaSettings>
+    {
+        public Alloha() : base(ModInit.premiumConf.Alloha)
+        {
+            loadKitInitialization = (j, i, c) =>
+            {
+                if (j.ContainsKey("m4s"))
+                    i.m4s = c.m4s;
+
+                if (j.ContainsKey("linkhost"))
+                    i.linkhost = c.linkhost;
+
+                if (j.ContainsKey("reserve"))
+                    i.reserve = c.reserve;
+
+                i.secret_token = c.secret_token;
+                i.token = c.token;
+                return i;
+            };
+        }
+
+        [HttpGet]
+        [Staticache(1)]
+        [Route("lite/alloha")]
+        async public Task<ActionResult> Index(string orid, string imdb_id, long kinopoisk_id, string title, string original_title, int serial, string original_language, int year, string t, int s = -1, bool rjson = false, bool similar = false)
+        {
+            if (similar)
+                return await RouteToSpiderSearch(title, rjson);
+
+            if (await IsRequestBlocked(rch: !string.IsNullOrEmpty(init.secret_token)))
+                return badInitMsg;
+
+            var result = await search(orid, imdb_id, kinopoisk_id, title, serial, original_language, year);
+            if (result.category_id == 0)
+                return OnError("data");
+
+            if (result.data == null)
+                return Ok();
+
+            JToken data = result.data;
+
+            string defaultargs = $"&orid={orid}&imdb_id={imdb_id}&kinopoisk_id={kinopoisk_id}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&serial={serial}&year={year}&original_language={original_language}";
+
+            if (result.category_id is 1 or 3)
+            {
+                #region Фильм
+                var mtpl = new MovieTpl(title, original_title);
+                bool directors_cut = data.Value<bool>("available_directors_cut");
+
+                foreach (var translation in data.Value<JObject>("translation_iframe").ToObject<Dictionary<string, Dictionary<string, object>>>())
+                {
+                    string link = $"{host}/lite/alloha/video?t={translation.Key}&token_movie={result.data.Value<string>("token_movie")}" + defaultargs;
+                    string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+
+                    bool uhd = false;
+                    if (translation.Value.TryGetValue("uhd", out object _uhd))
+                        uhd = _uhd.ToString().ToLower() == "true" && init.m4s;
+
+                    if (directors_cut && translation.Key == "66")
+                        mtpl.Append("Режиссерская версия", $"{link}&directors_cut=true", "call", $"{streamlink}&directors_cut=true", voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
+
+                    mtpl.Append(translation.Value["name"].ToString(), link, "call", streamlink, voice_name: uhd ? "2160p" : translation.Value["quality"].ToString(), quality: uhd ? "2160p" : "");
+                }
+
+                return ContentTpl(mtpl);
+                #endregion
+            }
+            else
+            {
+                #region Сериал
+                if (s == -1)
+                {
+                    var tpl = new SeasonTpl(result.data.Value<bool>("uhd") && init.m4s ? "2160p" : null);
+
+                    foreach (var season in data.Value<JObject>("seasons").ToObject<Dictionary<string, object>>().Reverse())
+                        tpl.Append($"{season.Key} сезон", $"{host}/lite/alloha?rjson={rjson}&s={season.Key}{defaultargs}", season.Key);
+
+                    return ContentTpl(tpl);
+                }
+                else
+                {
+                    #region Перевод
+                    var vtpl = new VoiceTpl();
+                    var temp_translation = new HashSet<string>();
+
+                    string activTranslate = t;
+
+                    foreach (var episodes in data.Value<JObject>("seasons").GetValue(s.ToString()).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Select(i => i.Value.translation))
+                    {
+                        foreach (var translation in episodes)
+                        {
+                            if (temp_translation.Contains(translation.Value.translation) || translation.Value.translation.ToLower().Contains("субтитры"))
+                                continue;
+
+                            temp_translation.Add(translation.Value.translation);
+
+                            if (string.IsNullOrWhiteSpace(activTranslate))
+                                activTranslate = translation.Key;
+
+                            vtpl.Append(translation.Value.translation, activTranslate == translation.Key, $"{host}/lite/alloha?rjson={rjson}&s={s}&t={translation.Key}{defaultargs}");
+                        }
+                    }
+                    #endregion
+
+                    var etpl = new EpisodeTpl(vtpl);
+                    string sArhc = s.ToString();
+
+                    foreach (var episode in data.Value<JObject>("seasons").GetValue(sArhc).Value<JObject>("episodes").ToObject<Dictionary<string, Episode>>().Reverse())
+                    {
+                        if (!string.IsNullOrWhiteSpace(activTranslate) && !episode.Value.translation.ContainsKey(activTranslate))
+                            continue;
+
+                        string link = $"{host}/lite/alloha/video?t={activTranslate}&s={s}&e={episode.Key}&token_movie={result.data.Value<string>("token_movie")}" + defaultargs;
+                        string streamlink = accsArgs($"{link.Replace("/video", "/video.m3u8")}&play=true");
+
+                        etpl.Append($"{episode.Key} серия", title ?? original_title, sArhc, episode.Key, link, "call", streamlink: streamlink);
+                    }
+
+                    return ContentTpl(etpl);
+                }
+                #endregion
+            }
+        }
+
+
+        #region Video
+        [HttpGet]
+        [Route("lite/alloha/video")]
+        [Route("lite/alloha/video.m3u8")]
+        async public Task<ActionResult> Video(string token_movie, string title, string original_title, string t, int s, int e, bool play, bool directors_cut)
+        {
+            if (await IsRequestBlocked(rch: !string.IsNullOrEmpty(init.secret_token), rch_check: !play))
+                return badInitMsg;
+
+            var cache = await InvokeCacheResult<JToken>($"alloha:view:stream:{init.secret_token}:{token_movie}:{t}:{s}:{e}:{init.m4s}:{directors_cut}", 10, async cacheEntry =>
+            {
+                string userIp = requestInfo.IP;
+                if (init.localip || init.streamproxy)
+                {
+                    userIp = await mylocalip();
+                    if (userIp == null)
+                        return cacheEntry.Fail("userIp");
+                }
+
+                #region url запроса
+                string uri = $"{init.linkhost}/direct?secret_token={init.secret_token}&token_movie={token_movie}";
+
+                uri += $"&ip={userIp}&translation={t}";
+
+                if (s > 0)
+                    uri += $"&season={s}";
+
+                if (e > 0)
+                    uri += $"&episode={e}";
+
+                if (init.m4s)
+                    uri += "&av1=true";
+
+                if (directors_cut)
+                    uri += "&directors_cut";
+                #endregion
+
+                var root = await httpHydra.Get<JObject>(uri, safety: true);
+                if (root == null)
+                    return cacheEntry.Fail("json", refresh_proxy: true);
+
+                if (!root.ContainsKey("data"))
+                    return cacheEntry.Fail("data");
+
+                return cacheEntry.Success(root["data"]);
+            });
+
+            if (!cache.IsSuccess)
+                return OnError(cache.ErrorMsg);
+
+            var data = cache.Value;
+
+            #region subtitle
+            var subtitles = new SubtitleTpl();
+
+            try
+            {
+                foreach (var sub in data["file"]["tracks"])
+                    subtitles.Append(sub.Value<string>("label"), sub.Value<string>("src"));
+            }
+            catch (System.Exception ex)
+            {
+                Serilog.Log.Error(ex, "{Class} {CatchId}", "Alloha", "id_vfiog35y");
+            }
+            #endregion
+
+            List<StreamQualityDto> streams = null;
+
+            foreach (var hlsSource in data["file"]["hlsSource"])
+            {
+                // first or default
+                if (streams == null || hlsSource.Value<bool>("default"))
+                {
+                    streams = new List<StreamQualityDto>(6);
+
+                    foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
+                    {
+                        string file = q.Value;
+                        if (init.reserve)
+                            file += " or " + hlsSource["reserve"][q.Key].ToString();
+
+                        streams.Add(new StreamQualityDto(HostStreamProxy(file), $"{q.Key}p"));
+                    }
+                }
+            }
+
+            if (streams == null || streams.Count == 0)
+                return OnError("streams");
+
+            var streamquality = new StreamQualityTpl(streams);
+
+            var first = streamquality.Firts();
+            if (first == null)
+                return OnError();
+
+            if (play)
+                return RedirectToPlay(first.link);
+
+            #region segments
+            var segments = new SegmentTpl();
+
+            var dfile = data["file"];
+            string skipTime = dfile.Value<string>("skipTime");
+            string removeTime = dfile.Value<string>("removeTime");
+
+            if (skipTime != null && skipTime.Contains("-"))
+            {
+                foreach (string skp in skipTime.Split(","))
+                {
+                    var range = skp.Trim().Split('-');
+                    if (range.Length >= 2 && int.TryParse(range[0].Trim(), out int start) && int.TryParse(range[1].Trim(), out int end))
+                        segments.skip(start, end);
+                }
+            }
+
+            if (removeTime != null && removeTime.Contains("-"))
+            {
+                foreach (string skp in removeTime.Split(","))
+                {
+                    var range = skp.Trim().Split('-');
+                    if (range.Length >= 2 && int.TryParse(range[0].Trim(), out int start) && int.TryParse(range[1].Trim(), out int end))
+                        segments.ad(start, end);
+                }
+            }
+            #endregion
+
+            return ContentTo(VideoTpl.ToJson("play", first.link, (title ?? original_title),
+                streamquality: streamquality,
+                vast: init.vast,
+                subtitles: subtitles,
+                segments: segments,
+                hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
+            ));
+        }
+        #endregion
+
+        #region RouteToSpiderSearch
+        [HttpGet]
+        [Route("lite/alloha-search")]
+        async public Task<ActionResult> RouteToSpiderSearch(string title, bool rjson = false)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return OnError("title", gbcache: false);
+
+            if (await IsRequestBlocked(rch: !string.IsNullOrEmpty(init.token)))
+                return badInitMsg;
+
+            var cache = await InvokeCacheResult<JArray>($"alloha:search:{title}", 40, async e =>
+            {
+                var root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list", safety: true);
+                if (root == null || !root.ContainsKey("data"))
+                    return e.Fail("data", refresh_proxy: true);
+
+                return e.Success(root["data"].ToObject<JArray>());
+            });
+
+            return ContentTpl(cache, () =>
+            {
+                var stpl = new SimilarTpl(cache.Value.Count);
+
+                foreach (var j in cache.Value)
+                {
+                    string uri = $"{host}/lite/alloha?orid={j.Value<string>("token_movie")}";
+                    stpl.Append(j.Value<string>("name") ?? j.Value<string>("original_name"), j.Value<int>("year").ToString(), string.Empty, uri, PosterApi.Size(j.Value<string>("poster")));
+                }
+
+                return stpl;
+            });
+        }
+        #endregion
+
+
+        #region search
+        async ValueTask<(bool refresh_proxy, int category_id, JToken data)> search(string token_movie, string imdb_id, long kinopoisk_id, string title, int serial, string original_language, int year)
+        {
+            string memKey = $"alloha:view:{kinopoisk_id}:{imdb_id}";
+            if (0 >= kinopoisk_id && string.IsNullOrEmpty(imdb_id))
+                memKey = $"alloha:viewsearch:{title}:{serial}:{original_language}:{year}";
+
+            if (!string.IsNullOrEmpty(token_movie))
+                memKey = $"alloha:view:{token_movie}";
+
+            JObject root = null;
+
+            if (!hybridCache.TryGetValue(memKey, out (int category_id, JToken data) res))
+            {
+                if (memKey.Contains(":viewsearch:"))
+                {
+                    if (string.IsNullOrWhiteSpace(title) || year == 0)
+                        return default;
+
+                    root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&name={HttpUtility.UrlEncode(title)}&list={(serial == 1 ? "serial" : "movie")}", safety: true);
+                    if (root == null)
+                        return (true, 0, null);
+
+                    if (root.ContainsKey("data"))
+                    {
+                        string stitle = title.ToLowerAndTrim();
+
+                        foreach (var item in root["data"])
+                        {
+                            if (item.Value<string>("name")?.ToLowerAndTrim() == stitle)
+                            {
+                                int y = item.Value<int>("year");
+                                if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))
+                                {
+                                    if (original_language == "ru" && item.Value<string>("country")?.ToLowerAndTrim() != "россия")
+                                        continue;
+
+                                    res.data = item;
+                                    res.category_id = item.Value<int>("category_id");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(imdb_id))
+                        root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&imdb={imdb_id}&token_movie={token_movie}", safety: true);
+
+                    if ((root == null || !root.ContainsKey("data")) && kinopoisk_id > 0)
+                        root = await httpHydra.Get<JObject>($"{init.apihost}/?token={init.token}&kp={kinopoisk_id}&token_movie={token_movie}", safety: true);
+
+                    if (root == null)
+                        return (true, 0, null);
+
+                    if (root.ContainsKey("data"))
+                    {
+                        res.data = root.GetValue("data");
+                        res.category_id = res.data.Value<int>("category");
+                    }
+                }
+
+                if (res.data != null)
+                    proxyManager?.Success();
+
+                if (res.data != null || (root.ContainsKey("error_info") && root.Value<string>("error_info") == "not movie"))
+                    hybridCache.Set(memKey, res, cacheTime(res.category_id is 1 or 3 ? 120 : 40));
+                else
+                    hybridCache.Set(memKey, res, cacheTime(2));
+            }
+
+            return (false, res.category_id, res.data);
+        }
+        #endregion
+    }
+}
