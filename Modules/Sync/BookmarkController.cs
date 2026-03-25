@@ -143,7 +143,7 @@ namespace Sync.Controllers
                         Save(sqlDb, entity, data);
                     }
                 }
-                catch
+                catch 
                 {
                     return JsonFailure();
                 }
@@ -152,15 +152,15 @@ namespace Sync.Controllers
                     semaphore.Release();
                 }
 
-                //if (IsDbInitialization)
-                //{
-                //    _ = Shared.Startup.Nws.EventsAsync(connectionId, requestInfo.user_uid, "bookmark", JsonConvertPool.SerializeObject(new
-                //    {
-                //        type = "set",
-                //        data = token,
-                //        profile_id = getProfileid(requestInfo, HttpContext)
-                //    })).ConfigureAwait(false);
-                //}
+                if (IsDbInitialization)
+                {
+                    _ = SyncNwsEvents.PublishAsync(connectionId, requestInfo.user_uid, "bookmark", JsonConvertPool.SerializeObject(new
+                    {
+                        type = "set",
+                        data = token,
+                        profile_id = getProfileid(requestInfo, HttpContext)
+                    })).ConfigureAwait(false);
+                }
 
                 return JsonSuccess();
             }
@@ -188,7 +188,7 @@ namespace Sync.Controllers
             try
             {
                 bool _acquired = await semaphore.WaitAsync();
-                if (!_acquired)
+                if (!_acquired) 
                     return JsonFailure();
 
                 using (var sqlDb = SqlContext.Create())
@@ -224,14 +224,14 @@ namespace Sync.Controllers
                                 data = readBody.token
                             });
 
-                            //_ = Shared.Startup.Nws.EventsAsync(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                            _ = SyncNwsEvents.PublishAsync(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
                 }
 
                 return JsonSuccess();
             }
-            catch
+            catch 
             {
                 return JsonFailure();
             }
@@ -260,7 +260,7 @@ namespace Sync.Controllers
             try
             {
                 bool _acquired = await semaphore.WaitAsync();
-                if (!_acquired)
+                if (!_acquired) 
                     return JsonFailure();
 
                 using (var sqlDb = SqlContext.Create())
@@ -300,14 +300,14 @@ namespace Sync.Controllers
                                 data = readBody.token
                             });
 
-                            //_ = Shared.Startup.Nws.EventsAsync(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                            _ = SyncNwsEvents.PublishAsync(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
                 }
 
                 return JsonSuccess();
             }
-            catch
+            catch 
             {
                 return JsonFailure();
             }

@@ -26,6 +26,7 @@ namespace Sync
 
             updateConf();
             EventListener.UpdateInitFile += updateConf;
+            SyncNwsEvents.Start();
 
             foreach (var m in conf.limit_map)
                 CoreInit.conf.WAF.limit_map.Insert(0, m);
@@ -35,7 +36,6 @@ namespace Sync
 
             SqlContext.Initialization(baseconf.app.ApplicationServices);
         }
-
 
         void updateConf()
         {
@@ -49,7 +49,10 @@ namespace Sync
             });
         }
 
-
-        public void Dispose() { }
+        public void Dispose()
+        {
+            SyncNwsEvents.Stop();
+            EventListener.UpdateInitFile -= updateConf;
+        }
     }
 }

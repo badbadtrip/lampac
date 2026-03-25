@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Services;
 using Shared.Services.Pools;
+using Shared.Services.Pools.Json;
 using Shared.Services.Utilities;
 using System;
 using System.IO;
@@ -60,7 +61,7 @@ namespace Sync.Controllers
         #region Set
         [HttpPost]
         [Route("/storage/set")]
-        async public Task<ActionResult> Set([FromQuery] string path, [FromQuery] string pathfile, [FromQuery] string connectionId)
+        async public Task<ActionResult> Set([FromQuery]string path, [FromQuery]string pathfile, [FromQuery]string connectionId)
         {
             if (HttpContext.Request.ContentLength > maxRequestSize)
                 return ContentTo("{\"success\": false, \"msg\": \"max_size\"}");
@@ -125,14 +126,16 @@ namespace Sync.Controllers
                 }
             }
 
-#warning add events sents
-            //string edata = JsonConvertPool.SerializeObject(new { path, pathfile });
-            //_ = Shared.Startup.Nws.EventsAsync(connectionId, requestInfo.user_uid, "storage", edata).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(requestInfo.user_uid))
+            {
+                string edata = JsonConvertPool.SerializeObject(new { path, pathfile });
+                _ = SyncNwsEvents.PublishAsync(connectionId, requestInfo.user_uid, "storage", edata).ConfigureAwait(false);
+            }
 
             var inf = new FileInfo(outFile);
 
-            return Json(new
-            {
+            return Json(new 
+            { 
                 success = true,
                 uid = requestInfo.user_uid,
                 fileInfo = new { inf.Name, path = outFile, inf.Length, changeTime = new DateTimeOffset(inf.LastWriteTimeUtc).ToUnixTimeMilliseconds() }
@@ -162,7 +165,7 @@ namespace Sync.Controllers
 
             try
             {
-                bool _acquired = await semaphore.WaitAsync();
+                bool  _acquired = await semaphore.WaitAsync();
                 if (!_acquired)
                 {
                     HttpContext.Response.StatusCode = 502;
