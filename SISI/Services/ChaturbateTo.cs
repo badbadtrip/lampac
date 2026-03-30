@@ -122,13 +122,16 @@ namespace SISI.Services
             if (html.IsEmpty)
                 return null;
 
-            string hls = Rx.Match(html, "(https?://[^ ]+/playlist\\.m3u8)");
+            string hls =
+                Rx.Match(html, "(https?://[^ ]+/playlist\\.m3u8)") ??
+                Rx.Match(html, @"\\u0022hls_source\\u0022: \\u0022([^, ]+)\\u0022,");
+
             if (hls == null)
                 return null;
 
             return new Dictionary<string, string>()
             {
-                ["auto"] = hls.Replace("\\u002D", "-").Replace("\\", "")
+                ["auto"] = Regex.Unescape(hls)
             };
         }
         #endregion

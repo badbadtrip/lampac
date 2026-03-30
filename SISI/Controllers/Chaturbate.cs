@@ -60,7 +60,7 @@ namespace SISI.Controllers
                 return badInitMsg;
 
             rhubFallback:
-            var cache = await InvokeCacheResult($"chaturbate:stream:{baba}", 10, jsonContext.DictionaryStringString, async e =>
+            var cache = await InvokeCacheResult($"chaturbate:stream:{baba}", 1, jsonContext.DictionaryStringString, async e =>
             {
                 string url = ChaturbateTo.StreamLinksUri(init.host, baba);
                 if (url == null)
