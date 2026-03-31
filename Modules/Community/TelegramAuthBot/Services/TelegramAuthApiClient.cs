@@ -48,21 +48,27 @@ namespace TelegramAuthBot.Services
             return JsonConvert.DeserializeObject<DevicesResponseDto>(body);
         }
 
-        public async Task<bool> BindCompleteAsync(string uid, string telegramId, string username, CancellationToken ct)
+        public async Task<BindCompleteResult> BindCompleteAsync(string uid, string telegramId, string username, CancellationToken ct)
         {
             var payload = new { uid, telegramId, username };
             using var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-            using var resp = await _http.PostAsync("tg/auth/bind/complete", content, ct).ConfigureAwait(false);
+            using var req = new HttpRequestMessage(HttpMethod.Post, "tg/auth/bind/complete") { Content = content };
+            AddMutationsSecret(req);
+            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
-                return false;
+                return new BindCompleteResult();
             var jo = JObject.Parse(body);
-            return jo.Value<bool?>("ok") == true;
+            return new BindCompleteResult
+            {
+                Ok = jo.Value<bool?>("ok") == true,
+                PendingAdminApproval = jo.Value<bool?>("pendingAdminApproval") == true
+            };
         }
 
-        public async Task<bool> UnbindDeviceAsync(string uid, CancellationToken ct)
+        public async Task<bool> UnbindDeviceAsync(string telegramId, string uid, CancellationToken ct)
         {
-            var payload = new { uid };
+            var payload = new { telegramId, uid };
             using var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
             using var resp = await _http.PostAsync("tg/auth/device/unbind", content, ct).ConfigureAwait(false);
             var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -70,6 +76,24 @@ namespace TelegramAuthBot.Services
                 return false;
             var jo = JObject.Parse(body);
             return jo.Value<bool?>("ok") == true;
+        }
+
+        public async Task<(bool ok, string detail)> ReactivateDeviceAsync(string telegramId, string uid, CancellationToken ct)
+        {
+            var payload = new { telegramId, uid };
+            using var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+            using var resp = await _http.PostAsync("tg/auth/device/reactivate", content, ct).ConfigureAwait(false);
+            var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            return resp.IsSuccessStatusCode ? (true, body) : (false, body);
+        }
+
+        public async Task<(bool ok, string detail)> SetDeviceDisplayNameAsync(string uid, string? name, CancellationToken ct)
+        {
+            var payload = new { uid, name };
+            using var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+            using var resp = await _http.PostAsync("tg/auth/device/name", content, ct).ConfigureAwait(false);
+            var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            return resp.IsSuccessStatusCode ? (true, body) : (false, body);
         }
 
         public async Task<(bool ok, string detail)> ImportLegacyAsync(CancellationToken ct)
@@ -106,6 +130,17 @@ namespace TelegramAuthBot.Services
             var payload = new { telegramId, disabled };
             using var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
             using var req = new HttpRequestMessage(HttpMethod.Post, "tg/auth/admin/user/disabled") { Content = content };
+            AddMutationsSecret(req);
+            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
+            var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            return resp.IsSuccessStatusCode ? (true, body) : (false, body);
+        }
+
+        public async Task<(bool ok, string detail)> ResolveRegistrationPendingAsync(string telegramId, bool approve, CancellationToken ct)
+        {
+            var payload = new { telegramId, approve };
+            using var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+            using var req = new HttpRequestMessage(HttpMethod.Post, "tg/auth/admin/user/pending") { Content = content };
             AddMutationsSecret(req);
             using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);

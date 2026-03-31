@@ -2,6 +2,12 @@ using System.Collections.Generic;
 
 namespace TelegramAuthBot.Models
 {
+    public sealed class BindCompleteResult
+    {
+        public bool Ok { get; set; }
+        public bool PendingAdminApproval { get; set; }
+    }
+
     public class UserByTelegramDto
     {
         public bool found { get; set; }
@@ -10,6 +16,7 @@ namespace TelegramAuthBot.Models
         public string role { get; set; }
         public string lang { get; set; }
         public bool disabled { get; set; }
+        public bool registrationPending { get; set; }
         public bool active { get; set; }
         public string expiresAt { get; set; }
         public int deviceCount { get; set; }
@@ -42,6 +49,7 @@ namespace TelegramAuthBot.Models
         public string username { get; set; }
         public string role { get; set; }
         public bool disabled { get; set; }
+        public bool registrationPending { get; set; }
         public bool active { get; set; }
         public string expiresAt { get; set; }
         public int deviceCount { get; set; }

@@ -70,7 +70,7 @@ namespace TelegramAuth.Controllers
                 ok = true,
                 pending = true,
                 uid = request.Uid,
-                message = "MVP: устройство отмечено как ожидающее Telegram-подтверждение. Следующий шаг — связать это с ботом."
+                message = "Привяжи UID в Telegram-боте."
             };
 
             return JsonOk(response);
@@ -82,18 +82,26 @@ namespace TelegramAuth.Controllers
         [Route("/tg/auth/bind/complete")]
         public ActionResult BindComplete([FromBody] BindCompleteRequest? request)
         {
+            var mutSecret = ModInit.conf.mutations_api_secret?.Trim() ?? "";
+            if (mutSecret.Length > 0 && !TryAuthorizeMutations())
+                return JsonError(403, "forbidden", "use accspasswd cookie or " + MutationsSecretHeaderName);
+
             if (request == null || string.IsNullOrWhiteSpace(request.Uid) || string.IsNullOrWhiteSpace(request.TelegramId))
                 return JsonError(400, "uid and telegramId are required");
 
             try
             {
-                store.BindDevice(request.TelegramId, request.Uid, request.Username, "manual-complete");
+                var bindOutcome = store.BindDevice(request.TelegramId, request.Uid, request.Username, request.DeviceName, "manual-complete");
                 return JsonOk(new
                 {
                     ok = true,
-                    message = "Устройство привязано",
+                    message = bindOutcome.PendingAdminApproval
+                        ? "Устройство привязано; доступ включит администратор"
+                        : "Устройство привязано",
                     uid = request.Uid,
-                    telegramId = request.TelegramId
+                    telegramId = request.TelegramId,
+                    newUserProvisioned = bindOutcome.NewUserProvisioned,
+                    pendingAdminApproval = bindOutcome.PendingAdminApproval
                 });
             }
             catch (InvalidOperationException ex) when (ex.Message == TelegramAuthStore.BindUserNotFoundMessage)
@@ -129,6 +137,7 @@ namespace TelegramAuth.Controllers
                 });
             }
 
+            var registrationPending = TelegramAuthStore.IsRegistrationPending(user);
             return JsonOk(new
             {
                 found = true,
@@ -140,6 +149,7 @@ namespace TelegramAuth.Controllers
                 createdAt = user.CreatedAt,
                 expiresAt = user.ExpiresAt,
                 disabled = user.Disabled,
+                registrationPending,
                 active = store.IsActive(user),
                 deviceCount = user.Devices.Count(d => d.Active),
                 maxDevices = store.GetMaxDevices(user)
@@ -163,6 +173,7 @@ namespace TelegramAuth.Controllers
                     username = u.TgUsername,
                     role = u.Role,
                     disabled = u.Disabled,
+                    registrationPending = TelegramAuthStore.IsRegistrationPending(u),
                     active = store.IsActive(u),
                     expiresAt = u.ExpiresAt,
                     deviceCount = u.Devices.Count(d => d.Active)
@@ -198,6 +209,43 @@ namespace TelegramAuth.Controllers
             });
         }
 
+        [HttpPost]
+        [AllowAnonymous]
+        [AuthorizeAnonymous]
+        [Route("/tg/auth/admin/user/pending")]
+        public ActionResult AdminResolveRegistrationPending([FromBody] AdminPendingDecisionRequest? request)
+        {
+            if (!TryAuthorizeMutations())
+                return JsonError(403, "forbidden", "use accspasswd cookie or " + MutationsSecretHeaderName);
+
+            if (request == null || string.IsNullOrWhiteSpace(request.TelegramId))
+                return JsonError(400, "telegramId is required");
+
+            var tid = request.TelegramId.Trim();
+            if (request.Approve)
+            {
+                var outcome = store.TryApproveRegistrationPending(tid);
+                if (outcome == TelegramAuthStore.PendingDecisionOutcome.NotFound)
+                    return JsonError(404, "user not found");
+                if (outcome == TelegramAuthStore.PendingDecisionOutcome.NotPending)
+                    return JsonError(400, "not pending", "Пользователь не в статусе ожидания подтверждения.");
+
+                return JsonOk(new { ok = true, telegramId = tid, approved = true });
+            }
+            else
+            {
+                var outcome = store.TryRejectRegistrationPending(tid);
+                if (outcome == TelegramAuthStore.PendingDecisionOutcome.NotFound)
+                    return JsonError(404, "user not found");
+                if (outcome == TelegramAuthStore.PendingDecisionOutcome.NotPending)
+                    return JsonError(400, "not pending", "Пользователь не в статусе ожидания подтверждения.");
+                if (outcome == TelegramAuthStore.PendingDecisionOutcome.CannotRejectAdmin)
+                    return JsonError(403, "cannot reject admin");
+
+                return JsonOk(new { ok = true, telegramId = tid, rejected = true });
+            }
+        }
+
         [HttpGet]
         [AllowAnonymous]
         [AuthorizeAnonymous]
@@ -223,27 +271,61 @@ namespace TelegramAuth.Controllers
         [AllowAnonymous]
         [AuthorizeAnonymous]
         [Route("/tg/auth/device/unbind")]
-        public ActionResult Unbind([FromBody] BindStartRequest? request)
+        public ActionResult Unbind([FromBody] DeviceUnbindRequest? request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Uid) || string.IsNullOrWhiteSpace(request.TelegramId))
+                return JsonError(400, "telegramId and uid are required");
+
+            var outcome = store.TryUnbindDevice(request.TelegramId.Trim(), request.Uid.Trim());
+            if (outcome == TelegramAuthStore.UnbindDeviceOutcome.UserNotFound)
+                return JsonError(404, "user not found");
+            if (outcome == TelegramAuthStore.UnbindDeviceOutcome.DeviceNotFound)
+                return JsonError(404, "device not found", "UID не найден среди устройств этого пользователя.");
+
+            return JsonOk(new { ok = true, uid = request.Uid.Trim() });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [AuthorizeAnonymous]
+        [Route("/tg/auth/device/reactivate")]
+        public ActionResult ReactivateDevice([FromBody] DeviceReactivateRequest? request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.TelegramId) || string.IsNullOrWhiteSpace(request.Uid))
+                return JsonError(400, "telegramId and uid are required");
+
+            var outcome = store.TryReactivateDevice(request.TelegramId.Trim(), request.Uid.Trim());
+            if (outcome == TelegramAuthStore.ReactivateDeviceOutcome.UserNotFound)
+                return JsonError(404, "user not found");
+            if (outcome == TelegramAuthStore.ReactivateDeviceOutcome.UserDisabled)
+                return JsonError(403, "user disabled", "Аккаунт отключён администратором.");
+            if (outcome == TelegramAuthStore.ReactivateDeviceOutcome.DeviceNotFound)
+                return JsonError(404, "device not found", "UID не найден среди ваших устройств.");
+
+            return JsonOk(new { ok = true, uid = request.Uid.Trim() });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [AuthorizeAnonymous]
+        [Route("/tg/auth/device/name")]
+        public ActionResult SetDeviceName([FromBody] DeviceSetNameRequest? request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Uid))
                 return JsonError(400, "uid is required");
 
-            var users = store.GetUsers();
-            var changed = false;
-            foreach (var user in users)
+            var outcome = store.TrySetActiveDeviceDisplayName(request.Uid, request.Name);
+            if (outcome == TelegramAuthStore.SetDeviceDisplayNameOutcome.InvalidUid)
+                return JsonError(400, "uid is required");
+            if (outcome == TelegramAuthStore.SetDeviceDisplayNameOutcome.NotFoundOrInactive)
+                return JsonError(404, "device not found or access inactive", "UID не привязан или срок доступа истёк.");
+
+            return JsonOk(new
             {
-                var device = user.Devices.Find(d => string.Equals(d.Uid, request.Uid, StringComparison.OrdinalIgnoreCase));
-                if (device != null)
-                {
-                    device.Active = false;
-                    changed = true;
-                }
-            }
-
-            if (changed)
-                store.SaveUsers(users);
-
-            return JsonOk(new { ok = changed, uid = request.Uid });
+                ok = true,
+                uid = request.Uid.Trim(),
+                name = string.IsNullOrWhiteSpace(request.Name) ? (string?)null : request.Name.Trim()
+            });
         }
 
         [HttpPost]
