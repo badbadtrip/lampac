@@ -2,15 +2,36 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shared.Services.RxEnumerate;
+using Shared.Models.AppConf;
 using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
+using Shared.Services.RxEnumerate;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
 
 namespace OnlineRUS.Controllers
 {
     public class Mirage : BaseOnlineController<AllohaSettings>
     {
-        static readonly Serilog.ILogger Log = Serilog.Log.ForContext<Mirage>();
+        static IPage page;
+        static (string hls, long id_file, string token_movie, int lastseek, DateTime lastreq) curenthsl = new();
+
+        static Mirage()
+        {
+            Directory.CreateDirectory("cache/mirage");
+            CoreInit.conf.WAF.limit_map.Insert(0, new WafLimitRootMap("^/lite/mirage/trans/", new WafLimitMap { limit = 1000, second = 1 }));
+
+            _ = new Timer(_ =>
+            {
+                if (page != null && DateTime.Now.AddMinutes(-20) > curenthsl.lastreq)
+                {
+                    page.CloseAsync();
+                    page = null;
+                    curenthsl = default;
+                }
+            }, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(1));
+        }
 
         public Mirage() : base(ModInit.conf.Mirage)
         {
@@ -41,8 +62,6 @@ namespace OnlineRUS.Controllers
             var frame = await iframe(tokenMovie);
             if (frame.all == null)
                 return OnError();
-
-            //return ContentTo(JsonConvert.SerializeObject(frame.all));
 
             if (result.category_id is 1 or 3)
             {
@@ -78,15 +97,13 @@ namespace OnlineRUS.Controllers
                 {
                     #region Сезоны
                     string q = null;
+
                     try
                     {
                         if (init.m4s)
                             q = frame.active.Value<bool>("uhd") == true ? "2160p" : null;
                     }
-                    catch (System.Exception ex)
-                    {
-                        Log.Error(ex, "CatchId={CatchId}", "id_ohti3cp4");
-                    }
+                    catch { }
 
                     Dictionary<string, JToken> seasons;
                     if (frame.all["seasons"] != null)
@@ -293,37 +310,96 @@ namespace OnlineRUS.Controllers
         [Route("lite/mirage/video.m3u8")]
         async public Task<ActionResult> Video(long id_file, string token_movie, bool play)
         {
-            if (await IsRequestBlocked(rch: false, rch_check: !play))
+            if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
-            string memKey = $"mirage:video:{id_file}:{init.m4s}";
-            if (!hybridCache.TryGetValue(memKey, out (string hls, List<HeadersModel> headers) movie))
+            string hls = null;
+
+            if (curenthsl.id_file == id_file && curenthsl.token_movie == token_movie)
+                hls = curenthsl.hls;
+            else
             {
-                movie = await goMovie($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", id_file);
-                if (movie.hls == null)
+                hls = await goMovie($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", id_file);
+                if (hls == null)
                     return OnError();
 
-                hybridCache.Set(memKey, movie, cacheTime(10));
+                curenthsl = (hls, id_file, token_movie, 0, DateTime.Now);
             }
 
-            var streamquality = new StreamQualityTpl();
-            streamquality.Append(HostStreamProxy(movie.hls, headers: movie.headers), "auto");
-
-            var first = streamquality.Firts();
-            if (first == null)
-                return OnError("streams");
-
             if (play)
-                return Redirect(first.link);
+                return Redirect(hls);
 
-            return ContentTo(VideoTpl.ToJson("play", first.link, "auto",
-                streamquality: streamquality,
+            return ContentTo(VideoTpl.ToJson("play", hls, "auto",
                 vast: init.vast,
-                headers: movie.headers,
                 hls_manifest_timeout: (int)TimeSpan.FromSeconds(20).TotalMilliseconds
             ));
         }
+
+        [HttpGet]
+        [Route("lite/mirage/trans/{fileName}")]
+        async public Task<ActionResult> Trans(string fileName)
+        {
+            if (await IsRequestBlocked(rch: false))
+                return badInitMsg;
+
+            if (!Regex.IsMatch(fileName, "^([a-z0-9\\-]+\\.[a-z0-9]+)$"))
+                return BadRequest();
+
+            curenthsl.lastreq = DateTime.Now;
+
+            string path = $"cache/mirage/{fileName}";
+            int.TryParse(Regex.Match(fileName, "seg-([0-9]+)").Groups[1].Value, out int indexSeg);
+
+            if (indexSeg > 20)
+            {
+                try
+                {
+                    string oldpath = $"cache/mirage/{fileName.Replace($"seg-{indexSeg}", $"seg-{indexSeg - 4}")}";
+                    if (System.IO.File.Exists(oldpath))
+                        System.IO.File.Delete(oldpath);
+                }
+                catch { }
+            }
+
+            var timeout = TimeSpan.FromSeconds(20);
+            var sw = Stopwatch.StartNew();
+
+            while (!System.IO.File.Exists(path) && sw.Elapsed < timeout)
+            {
+                if (indexSeg > 0)
+                {
+                    int seek = (indexSeg * 6) - 10;
+                    if (seek > 90 && curenthsl.lastseek != seek)
+                    {
+                        curenthsl.lastseek = seek;
+
+                        await page.EvaluateAsync(@"() => 
+                            document.getElementById('player').contentWindow.postMessage(
+                              JSON.stringify({
+                                api: ""seek"",
+                                value: " + seek + @"
+                              }),
+                              ""*""
+                            );
+                        ");
+                    }
+
+                    await Task.Delay(5_000);
+                }
+                else
+                {
+                    await Task.Delay(1_000);
+                }
+            }
+
+            string type = fileName.Contains(".m3u")
+                ? "application/vnd.apple.mpegurl"
+                : "video/MP2T";
+
+            return File(System.IO.File.OpenRead(path), type);
+        }
         #endregion
+
 
         #region iframe
         async Task<(JToken all, JToken active)> iframe(string token_movie)
@@ -337,11 +413,10 @@ namespace OnlineRUS.Controllers
                 string json = null;
 
                 string uri = $"{init.linkhost}/?token_movie={token_movie}&token={init.token}";
-                string referer = $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)];
 
                 await httpHydra.GetSpan(uri, safety: true, addheaders: HeadersModel.Init(
                     ("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-                    ("referer", referer),
+                    ("referer", "https://alloha.tv/"),
                     ("sec-fetch-dest", "iframe"),
                     ("sec-fetch-mode", "navigate"),
                     ("sec-fetch-site", "cross-site"),
@@ -373,158 +448,170 @@ namespace OnlineRUS.Controllers
         #endregion
 
         #region goMovie
-        async Task<(string hls, List<HeadersModel> headers)> goMovie(string uri, long id_file)
+        async Task<string> goMovie(string uri, long id_file)
         {
             try
             {
-                using (var browser = new PlaywrightBrowser())
-                {
-                    var page = await browser.NewPageAsync(init.plugin, proxy: proxy_data).ConfigureAwait(false);
-                    if (page == null)
-                        return default;
+                var browser = new PlaywrightBrowser();
 
-                    await page.RouteAsync("**/*", async route =>
+                if (page != null)
+                    await page.CloseAsync();
+
+                try
+                {
+                    foreach (var file in Directory.GetFiles("cache/mirage"))
+                        System.IO.File.Delete(file);
+                }
+                catch { }
+
+                page = await browser.NewPageAsync(init.plugin, proxy: proxy_data).ConfigureAwait(false);
+                if (page == null)
+                    return default;
+
+                await page.RouteAsync("**/*", async route =>
+                {
+                    try
+                    {
+                        if (route.Request.Url.Contains("alloha.tv"))
+                        {
+                            await route.FulfillAsync(new RouteFulfillOptions
+                            {
+                                Body = PlaywrightBase.IframeHtml(uri + "&autoplay")
+                            });
+                        }
+                        else if (route.Request.Url.Contains("/?token_movie="))
+                        {
+                            var fetchHeaders = route.Request.Headers;
+                            fetchHeaders.TryAdd("accept-encoding", "gzip, deflate, br, zstd");
+                            fetchHeaders.TryAdd("cache-control", "no-cache");
+                            fetchHeaders.TryAdd("pragma", "no-cache");
+                            fetchHeaders.TryAdd("sec-fetch-dest", "iframe");
+                            fetchHeaders.TryAdd("sec-fetch-mode", "navigate");
+                            fetchHeaders.TryAdd("sec-fetch-site", "cross-site");
+                            fetchHeaders.TryAdd("sec-fetch-storage-access", "active");
+
+                            var fetchResponse = await route.FetchAsync(new RouteFetchOptions
+                            {
+                                Url = route.Request.Url,
+                                Method = "GET",
+                                Headers = fetchHeaders,
+                                PostData = route.Request.PostDataBuffer
+                            }).ConfigureAwait(false);
+
+                            string body = await fetchResponse.TextAsync().ConfigureAwait(false);
+
+                            var injected = @"
+                                <script>
+                                (function() {
+                                    localStorage.setItem('allplay', '{""captionParam"":{""fontSize"":""100%"",""colorText"":""Белый"",""colorBackground"":""Черный"",""opacityText"":""100%"",""opacityBackground"":""75%"",""styleText"":""Без контура"",""weightText"":""Обычный текст""},""quality"":"+(init.m4s ? "2160" : "1080")+@",""volume"":0.5,""muted"":true,""label"":""(Russian) Forced"",""captions"":false}');
+                                })();
+                                </script>";
+
+                            await route.FulfillAsync(new RouteFulfillOptions
+                            {
+                                Status = fetchResponse.Status,
+                                Body = injected + body,
+                                Headers = fetchResponse.Headers
+                            }).ConfigureAwait(false);
+                        }
+                        else if (route.Request.Method == "POST" && route.Request.Url.Contains("/movies/"))
+                        {
+                            string newUrl = Regex.Replace(route.Request.Url, "/[0-9]+$", $"/{id_file}");
+
+                            var fetchHeaders = route.Request.Headers;
+                            fetchHeaders.TryAdd("accept-encoding", "gzip, deflate, br, zstd");
+                            fetchHeaders.TryAdd("cache-control", "no-cache");
+                            fetchHeaders.TryAdd("dnt", "1");
+                            fetchHeaders.TryAdd("pragma", "no-cache");
+                            fetchHeaders.TryAdd("priority", "u=1, i");
+                            fetchHeaders.TryAdd("sec-fetch-dest", "empty");
+                            fetchHeaders.TryAdd("sec-fetch-mode", "cors");
+                            fetchHeaders.TryAdd("sec-fetch-site", "same-origin");
+                            fetchHeaders.TryAdd("sec-fetch-storage-access", "active");
+
+                            var fetchResponse = await route.FetchAsync(new RouteFetchOptions
+                            {
+                                Url = newUrl,
+                                Method = "POST",
+                                Headers = fetchHeaders,
+                                PostData = route.Request.PostDataBuffer
+                            }).ConfigureAwait(false);
+
+                            string json = await fetchResponse.TextAsync().ConfigureAwait(false);
+
+                            await route.FulfillAsync(new RouteFulfillOptions
+                            {
+                                Status = fetchResponse.Status,
+                                Body = json,
+                                Headers = fetchResponse.Headers
+                            }).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            if (route.Request.Url.Contains("/stat") || route.Request.Url.Contains("/lists.php"))
+                            {
+                                await route.AbortAsync();
+                                return;
+                            }
+
+                            await route.ContinueAsync();
+                        }
+                    }
+                    catch { }
+                });
+
+                TaskCompletionSource<bool> tcsPageResponse = new();
+
+                page.Response += async (s, e) =>
+                {
+                    if (e.Request.Method == "GET")
                     {
                         try
                         {
-                            if (route.Request.Url.Contains("lgfilm.fun"))
+                            if (e.Url.Contains(".ts") && !tcsPageResponse.Task.IsCompleted)
                             {
-                                await route.FulfillAsync(new RouteFulfillOptions
-                                {
-                                    Body = PlaywrightBase.IframeHtml(uri)
-                                });
-                            }
-                            else if (route.Request.Method == "POST" && route.Request.Url.Contains("/movies/"))
-                            {
-                                string newUrl = Regex.Replace(route.Request.Url, "/[0-9]+$", $"/{id_file}");
+                                tcsPageResponse.SetResult(true);
 
-                                var fetchHeaders = route.Request.Headers;
-                                fetchHeaders.TryAdd("accept-encoding", "gzip, deflate, br, zstd");
-                                fetchHeaders.TryAdd("cache-control", "no-cache");
-                                fetchHeaders.TryAdd("dnt", "1");
-                                fetchHeaders.TryAdd("pragma", "no-cache");
-                                fetchHeaders.TryAdd("priority", "u=1, i");
-                                fetchHeaders.TryAdd("sec-fetch-dest", "empty");
-                                fetchHeaders.TryAdd("sec-fetch-mode", "cors");
-                                fetchHeaders.TryAdd("sec-fetch-site", "same-origin");
-                                fetchHeaders.TryAdd("sec-fetch-storage-access", "active");
-
-                                var fetchResponse = await route.FetchAsync(new RouteFetchOptions
-                                {
-                                    Url = newUrl,
-                                    Method = "POST",
-                                    Headers = fetchHeaders,
-                                    PostData = route.Request.PostDataBuffer
-                                }).ConfigureAwait(false);
-
-                                string json = await fetchResponse.TextAsync().ConfigureAwait(false);
-
-                                string targetStream = null;
-
-                                try
-                                {
-                                    foreach (var hlsSource in JsonConvert.DeserializeObject<JObject>(json)["hlsSource"])
-                                    {
-                                        // first or default
-                                        if (targetStream == null || hlsSource.Value<bool>("default"))
-                                        {
-                                            foreach (var q in hlsSource["quality"].ToObject<Dictionary<string, string>>())
-                                            {
-                                                if ((q.Key is "2160" or "1440") && !init.m4s)
-                                                    continue;
-
-                                                targetStream = q.Value;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                                catch (System.Exception ex)
-                                {
-                                    Log.Error(ex, "CatchId={CatchId}", "id_353rj03q");
-                                }
-
-                                if (string.IsNullOrWhiteSpace(targetStream))
-                                {
-                                    if (init.m4s)
-                                        targetStream = Regex.Match(json, "\"(2160|1440)\":\"([^\"]+)\"").Groups[2].Value;
-
-                                    if (string.IsNullOrWhiteSpace(targetStream))
-                                        targetStream = Regex.Match(json, "\"(1080|720)\":\"([^\"]+)\"").Groups[2].Value;
-                                }
-
-                                if (!string.IsNullOrWhiteSpace(targetStream))
-                                    json = Regex.Replace(json, "\"(2160|1440|1080|720|480|360)\":\"[^\"]+\"", $"\"$1\":\"{targetStream}\"");
-
-                                await route.FulfillAsync(new RouteFulfillOptions
-                                {
-                                    Status = fetchResponse.Status,
-                                    Body = json,
-                                    Headers = fetchResponse.Headers
-                                }).ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                if (await PlaywrightBase.AbortOrCache(page, route, abortMedia: true, fullCacheJS: true))
-                                    return;
-
-                                await route.ContinueAsync();
+                                await page.EvaluateAsync(@"() => 
+                                    document.getElementById('player').contentWindow.postMessage(
+                                      JSON.stringify({
+                                        api: ""pause""
+                                      }),
+                                      ""*""
+                                    );
+                                ");
                             }
                         }
-                        catch (System.Exception ex)
+                        catch { }
+
+                        if (e.Url.Contains(".m3u8") || e.Url.Contains(".ts") || e.Url.Contains(".m4s"))
                         {
-                            Log.Error(ex, "CatchId={CatchId}", "id_7cd6ocle");
+                            try
+                            {
+                                var file = await e.BodyAsync();
+                                System.IO.File.WriteAllBytes($"cache/mirage/{Path.GetFileName(e.Url)}", file);
+                            }
+                            catch { }
                         }
-                    });
-
-                    page.Response += Page_Response;
-
-                    PlaywrightBase.GotoAsync(page, $"https://lgfilm.fun/" + reffers[Random.Shared.Next(0, reffers.Length)]);
-
-                    try
-                    {
-                        return await tcsPageResponse.Task.WaitAsync(TimeSpan.FromSeconds(15));
                     }
-                    catch (System.Exception ex)
-                    {
-                        Log.Error(ex, "CatchId={CatchId}", "id_wkfd968c");
-                    }
-                    finally
-                    {
-                        page.Response -= Page_Response;
-                    }
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Log.Error(ex, "CatchId={CatchId}", "id_efmlw02s");
-            }
+                };
 
-            return default;
-        }
+                PlaywrightBase.GotoAsync(page, "https://alloha.tv/");
 
-        TaskCompletionSource<(string hls, List<HeadersModel> headers)> tcsPageResponse = new TaskCompletionSource<(string hls, List<HeadersModel> headers)>();
-
-        private void Page_Response(object sender, IResponse e)
-        {
-            if (e.Request.Method == "GET" && e.Url.Contains("/master.m3u8"))
-            {
-                var headers = HeadersModel.Init(Http.defaultFullHeaders,
-                    ("sec-fetch-dest", "empty"),
-                    ("sec-fetch-mode", "cors"),
-                    ("sec-fetch-site", "cross-site")
-                );
-
-                foreach (var item in e.Request.Headers)
+                if (await tcsPageResponse.Task.WaitAsync(TimeSpan.FromSeconds(15)))
+                    return $"{host}/lite/mirage/trans/master.m3u8";
+                else
                 {
-                    if (item.Key.ToLower() is "host" or "accept-encoding" or "connection" or "range")
-                        continue;
-
-                    if (!Http.defaultFullHeaders.ContainsKey(item.Key.ToLower()))
-                        headers.Add(new HeadersModel(item.Key, item.Value.ToString()));
+                    await page.CloseAsync();
+                    return default;
                 }
+            }
+            catch
+            {
+                if (page != null)
+                    await page.CloseAsync();
 
-                tcsPageResponse.SetResult((e.Url, headers));
+                return default;
             }
         }
         #endregion
@@ -632,8 +719,5 @@ namespace OnlineRUS.Controllers
             return (false, res.category_id, res.data);
         }
         #endregion
-
-
-        static string[] reffers = new string[] { "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "1400-princessa-i-tajna-goblinov-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "408-legenda-o-chernom-dereve-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1221-magazin-svetilnikov-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1112-vspylchivyj-svjaschennik-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1239-forsazh-polnyj-vpered-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1230-chelovek-vnutri-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1214-moj-marchello-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1200-reinkarnacija-vozvraschenie-vedmy-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1185-ne-hochu-nichego-terjat-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1168-astral-koshmar-v-spring-garden-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1179-komandante-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1157-bolshoe-prikljuchenie-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "1143-kak-stat-korolem-2024.html", "944-pingvin-2024.html", "944-pingвин-2024.html" };
     }
 }
