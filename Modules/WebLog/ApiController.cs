@@ -1,14 +1,13 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Attributes;
 
 namespace WebLog
 {
-    [Authorize]
+    [Authorization]
     public class ApiController : BaseController
     {
         [HttpGet]
-        [AllowAnonymous]
         [Route("/weblog")]
         public ActionResult WebLogPage(string pattern)
         {
@@ -63,7 +62,7 @@ namespace WebLog
         }});
 
         function send(message) {{
-            if (pattern && message.indexOf(pattern) === -1) 
+            if (pattern && message.indexOf(pattern) === -1)
               return;
 
             var messageHtml = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -1,8 +1,8 @@
 ﻿using Core.Middlewares;
 using Core.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Attributes;
 using Shared.Models.AppConf;
 using Shared.PlaywrightCore;
 using Shared.Services;
@@ -18,14 +18,13 @@ using System.Threading;
 
 namespace Core.Controllers
 {
-    [Authorize]
+    [Authorization]
     public class OpenStatController : BaseController
     {
         public OpenStatConf openstat => CoreInit.conf.openstat;
 
         #region GC
         [HttpGet]
-        [AllowAnonymous]
         [Route("/stats/gc")]
         public ActionResult GcMemory()
         {
@@ -46,7 +45,6 @@ namespace Core.Controllers
 
         #region browser/context
         [HttpGet]
-        [AllowAnonymous]
         [Route("/stats/browser/context")]
         public ActionResult BrowserContext()
         {
@@ -79,7 +77,6 @@ namespace Core.Controllers
 
         #region request
         [HttpGet]
-        [AllowAnonymous]
         [Route("/stats/request")]
         public ActionResult Requests()
         {
@@ -157,7 +154,6 @@ namespace Core.Controllers
 
         #region TempDb
         [HttpGet]
-        [AllowAnonymous]
         [Route("/stats/tempdb")]
         public ActionResult TempDb()
         {
@@ -238,7 +234,6 @@ namespace Core.Controllers
 
         #region thread/task diagnostics
         [HttpGet]
-        [AllowAnonymous]
         [Route("/stats/threadpool")]
         public ActionResult ThreadPoolDiagnostics()
         {

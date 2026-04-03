@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Shared;
@@ -9,7 +9,6 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Core.Middlewares
@@ -39,14 +38,22 @@ namespace Core.Middlewares
             var endpoint = httpContext.GetEndpoint();
             var requestInfo = httpContext.Features.Get<RequestModel>();
 
-            #region Authorize
-            bool IsAuthorize = endpoint != null && endpoint.Metadata.GetMetadata<IAuthorizeData>() != null
-                || rexAuthorize.IsMatch(httpContext.Request.Path.Value);
+            #region Authorization
+            bool IsAuthorize = rexAuthorize.IsMatch(httpContext.Request.Path.Value);
+            if (IsAuthorize == false && endpoint != null)
+            {
+                IsAuthorize =
+                    endpoint.Metadata.GetMetadata<IAuthorizeData>() != null ||
+                    endpoint.Metadata.GetMetadata<AuthorizationAttribute>() != null;
+            }
+
 
             if (IsAuthorize)
             {
-                if (endpoint != null && endpoint.Metadata.GetMetadata<AuthorizeAnonymousAttribute>() != null)
+                if (endpoint?.Metadata?.GetMetadata<IAllowAnonymous>() != null)
                     return _next(httpContext);
+
+                AuthorizationAttribute authAttribute = endpoint?.Metadata?.GetMetadata<AuthorizationAttribute>();
 
                 if (httpContext.Request.Cookies.TryGetValue("accspasswd", out string passwd))
                 {
@@ -67,6 +74,18 @@ namespace Core.Middlewares
 
                     if (passwd == CoreInit.rootPasswd)
                         return _next(httpContext);
+                }
+
+                if (authAttribute?.redirectUri != null)
+                {
+                    httpContext.Response.Redirect(authAttribute.redirectUri);
+                    return Task.CompletedTask;
+                }
+
+                if (authAttribute?.accessDeniedMessage != null)
+                {
+                    httpContext.Response.StatusCode = 401;
+                    return httpContext.Response.WriteAsync(authAttribute.accessDeniedMessage);
                 }
 
                 httpContext.Response.StatusCode = 404;
@@ -149,12 +168,7 @@ namespace Core.Middlewares
                     }
                     #endregion
 
-                    using (var ctsHttp = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted))
-                    {
-                        ctsHttp.CancelAfter(TimeSpan.FromSeconds(CoreInit.conf.listen.ResponseCancelAfter));
-
-                        return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, denymsg, user }, ctsHttp.Token);
-                    }
+                    return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, denymsg, user });
                 }
             }
 
