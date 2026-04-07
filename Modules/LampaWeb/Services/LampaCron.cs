@@ -120,7 +120,7 @@ namespace LampaWeb.Services
                             Directory.Delete($"wwwroot/{targetDirectory}", true);
                     }
                 }
-            } 
+            }
             catch (System.Exception ex)
             {
                 Serilog.Log.Error(ex, "{Class} {CatchId}", "LampaCron", "id_30qftt0j");
