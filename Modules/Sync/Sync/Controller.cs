@@ -19,9 +19,9 @@ using Shared.Services.Pools.Json;
 using SyncEvents;
 using Sync.Models;
 
-namespace Sync.Controllers
+namespace Sync
 {
-    public class ApiController : BaseController
+    public class SyncController : BaseController
     {
         #region bookmark.js
         [HttpGet]

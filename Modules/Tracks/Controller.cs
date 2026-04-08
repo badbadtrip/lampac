@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 using System.Web;
 using Shared.Services.Utilities;
 
-namespace Tracks.Controllers
+namespace Tracks
 {
-    public class ApiController : BaseController
+    public class TracksController : BaseController
     {
         [HttpGet]
         [AllowAnonymous]

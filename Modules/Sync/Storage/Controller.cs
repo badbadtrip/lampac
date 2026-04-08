@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
 
-namespace Storage.Controllers
+namespace Storage
 {
     public class StorageController : BaseController
     {

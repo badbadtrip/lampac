@@ -17,14 +17,14 @@ using Transcoding.Services;
 using Shared.Services.Utilities;
 using Shared.Services.Pools.Json;
 
-namespace Transcoding.Controllers
+namespace Transcoding
 {
     [ApiController]
     [Route("transcoding")]
-    public sealed class ApiController : Controller
+    public sealed class TranscodingController : Controller
     {
         #region static
-        static readonly Serilog.ILogger Log = Serilog.Log.ForContext<ApiController>();
+        static readonly Serilog.ILogger Log = Serilog.Log.ForContext<TranscodingController>();
 
         readonly TranscodingService _service = TranscodingService.Instance;
 

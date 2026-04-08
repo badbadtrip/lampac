@@ -20,14 +20,14 @@ using System.Threading.Tasks;
 using System.Web;
 using IO = System.IO;
 
-namespace TmdbProxy.Controllers
+namespace TmdbProxy
 {
-    public class ApiController : BaseController
+    public class TmdbProxyController : BaseController
     {
         #region static
         static readonly HttpClient http2ApiClient = FriendlyHttp.CreateHttp2Client();
         static readonly HttpClient http2ImgClient = FriendlyHttp.CreateHttp2Client();
-        static readonly Serilog.ILogger Log = Serilog.Log.ForContext<ApiController>();
+        static readonly Serilog.ILogger Log = Serilog.Log.ForContext<TmdbProxyController>();
 
         static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions
         {

@@ -44,7 +44,7 @@ namespace LampaWeb
                 basetag = true,
                 index = "lampa-main/index.html",
                 git = "yumata/lampa",
-                tree = "b69ed883d2911e548d85d83459174f527d841581",
+                tree = "63650dc132142e50c83ca33ae17e9c1daeed41c6",
                 limit_map = new List<WafLimitRootMap>()
                 {
                     new("^/(extensions|testaccsdb|msx/)", new WafLimitMap { limit = 10, second = 1 })

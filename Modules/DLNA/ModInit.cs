@@ -1,5 +1,4 @@
-﻿using DLNA.Controllers;
-using Shared;
+﻿using Shared;
 using Shared.Services;
 using Shared.Models.AppConf;
 using Shared.Models.Events;

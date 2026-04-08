@@ -12,9 +12,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace TimeCode.Controllers
+namespace TimeCode
 {
-    public class ApiController : BaseController
+    public class TimeCodeController : BaseController
     {
         #region timecode.js
         [HttpGet]

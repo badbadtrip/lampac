@@ -22,7 +22,7 @@ using IO = System.IO;
 using Shared.Services.Utilities;
 using DLNA.Services;
 
-namespace DLNA.Controllers
+namespace DLNA
 {
     public class DLNAController : BaseController
     {

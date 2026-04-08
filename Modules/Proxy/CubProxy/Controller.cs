@@ -19,9 +19,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace CubProxy.Controllers
+namespace CubProxy
 {
-    public class ApiController : BaseController
+    public class CubProxyController : BaseController
     {
         [HttpGet]
         [AllowAnonymous]
