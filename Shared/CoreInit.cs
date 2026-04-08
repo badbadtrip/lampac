@@ -384,7 +384,9 @@ namespace Shared
         {
             name = "Lampac",
             version = true,
-            btn_priority_forced = true
+            checkOnlineSearch = true,
+            btn_priority_forced = true,
+            with_search = new HashSet<string>()
         };
 
         public SisiConf sisi { get; set; } = new SisiConf()

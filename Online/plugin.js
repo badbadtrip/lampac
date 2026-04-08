@@ -43,11 +43,11 @@
     if (aesgcmkey) return { 'X-Kit-AesGcm': Lampa.Storage.get('aesgcmkey', '') };
     return {};
   }
-  
+
   function formatEpisodeNumber(episodeNumber) {
     return (episodeNumber < 10 ? '0' : '') + episodeNumber;
   }
-
+  
   var Network = Lampa.Reguest;
 
   function component(object) {

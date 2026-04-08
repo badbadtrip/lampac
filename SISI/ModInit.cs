@@ -13,7 +13,6 @@ namespace SISI
     {
         public static string modpath;
         public static ModuleConf conf;
-        public static SiteConf siteConf;
         private static Timer cleanupTimer;
 
         public void Configure(ConfigureModel app)
@@ -61,7 +60,6 @@ namespace SISI
                 }
             });
 
-            siteConf = ModuleInvoke.DeserializeInit(new SiteConf());
         }
 
 
@@ -83,7 +81,7 @@ namespace SISI
                         .ExecuteDelete();
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Serilog.Log.Error(ex, "CatchId={CatchId}", "id_6dc40a56");
             }

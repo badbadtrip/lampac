@@ -27,7 +27,7 @@
     this.queue = [];
     this.reconnectDelay = this.options.reconnectDelay;
     if (typeof this.reconnectDelay !== 'number' || this.reconnectDelay <= 0) {
-      this.reconnectDelay = 5000;
+      this.reconnectDelay = 4000;
     }
     this._shouldReconnect = !!this.options.autoReconnect;
     this._reconnectTimer = null;

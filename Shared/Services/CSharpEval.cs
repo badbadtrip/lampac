@@ -32,11 +32,12 @@ namespace Shared.Services
                 if (options == null)
                     options = ScriptOptions.Default;
 
-                options = options.AddReferences(typeof(Console).Assembly).AddImports("System")
-                                 .AddReferences(typeof(HttpUtility).Assembly).AddImports("System.Web")
-                                 .AddReferences(typeof(Enumerable).Assembly).AddImports("System.Linq")
-                                 .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
-                                 .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
+                options = options
+                    .AddReferences(typeof(Console).Assembly).AddImports("System")
+                    .AddReferences(typeof(HttpUtility).Assembly).AddImports("System.Web")
+                    .AddReferences(typeof(Enumerable).Assembly).AddImports("System.Linq")
+                    .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
+                    .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
 
                 return CSharpScript.Create<T>(
                     cs,
@@ -85,11 +86,12 @@ namespace Shared.Services
                 if (options == null)
                     options = ScriptOptions.Default;
 
-                options = options.AddReferences(typeof(Console).Assembly).AddImports("System")
-                                 .AddReferences(typeof(HttpUtility).Assembly).AddImports("System.Web")
-                                 .AddReferences(typeof(Enumerable).Assembly).AddImports("System.Linq")
-                                 .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
-                                 .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
+                options = options
+                    .AddReferences(typeof(Console).Assembly).AddImports("System")
+                    .AddReferences(typeof(HttpUtility).Assembly).AddImports("System.Web")
+                    .AddReferences(typeof(Enumerable).Assembly).AddImports("System.Linq")
+                    .AddReferences(typeof(List<>).Assembly).AddImports("System.Collections.Generic")
+                    .AddReferences(typeof(Regex).Assembly).AddImports("System.Text.RegularExpressions");
 
                 return CSharpScript.Create(
                     cs,
@@ -116,6 +118,8 @@ namespace Shared.Services
 
                 if (Directory.Exists(path))
                 {
+                    StringBuilder sumhash = new();
+
                     #region syntaxTree
                     var syntaxTree = new List<SyntaxTree>();
                     var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
@@ -147,10 +151,13 @@ namespace Shared.Services
 
                     foreach (string csfile in syntaxPaths)
                     {
-                        using (var fileStream = new FileStream(csfile, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                        using (var fileStream = new FileStream(csfile, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: PoolInvk.bufferSize))
                         {
                             var sourceText = SourceText.From(fileStream, Encoding.UTF8);
                             syntaxTree.Add(CSharpSyntaxTree.ParseText(sourceText, parseOptions, csfile));
+
+                            var checksum = sourceText.GetChecksum();
+                            sumhash.Append(Convert.ToHexString(checksum.ToArray()));
                         }
                     }
                     #endregion
@@ -201,6 +208,20 @@ namespace Shared.Services
                     }
                     #endregion
 
+                    #region cache dll
+                    string cachePath = Path.Combine("cache", "module", $"{CrypTo.md5(sumhash)}.dll");
+
+                    if (File.Exists(cachePath))
+                    {
+                        using (var fs = File.OpenRead(cachePath))
+                        {
+                            var alc = new AssemblyLoadContext(mod.name, isCollectible: true);
+                            var assembly = alc.LoadFromStream(fs);
+                            return (assembly, alc, path);
+                        }
+                    }
+                    #endregion
+
                     var compilation = CSharpCompilation.Create(mod.name, syntaxTree, references: appReferences, options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
                     using (var ms = PoolInvk.msm.GetStream())
@@ -209,6 +230,11 @@ namespace Shared.Services
 
                         if (result.Success)
                         {
+                            ms.Seek(0, SeekOrigin.Begin);
+
+                            using (var file = File.Create(cachePath))
+                                ms.CopyTo(file);
+
                             ms.Seek(0, SeekOrigin.Begin);
 
                             var alc = new AssemblyLoadContext(mod.name, isCollectible: true);

@@ -8,6 +8,10 @@ namespace Shared.Models.AppConf
 
         public bool version { get; set; }
 
+        public bool checkOnlineSearch { get; set; }
+
         public bool btn_priority_forced { get; set; }
+
+        public HashSet<string> with_search { get; set; }
     }
 }

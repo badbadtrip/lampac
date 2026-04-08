@@ -32,7 +32,7 @@ namespace Shared.Models.Events
 
     public record EventStreamQualityFirts(IReadOnlyList<StreamQualityDto> data);
 
-    public record EventOnlineApiQuality(string balanser);
+    public record EventOnlineApiQuality(string balanser, JObject kitconf);
 
     public record EventHttpHandler(string url, HttpClientHandler handler, WebProxy proxy, CookieContainer cookieContainer);
 

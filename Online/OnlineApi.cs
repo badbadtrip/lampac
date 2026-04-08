@@ -160,12 +160,20 @@ namespace Online.Controllers
                     string mkey = $"externalids:KP_:{_kp}";
                     if (!hybridCache.TryGetValue(mkey, out string _imdbid))
                     {
-                        var alloha = ModInit.siteConf.Alloha;
-                        var proxyManager = new ProxyManager("alloha", alloha);
+                        var bearer = HeadersModel.Init(
+                            ("Authorization", $"Bearer 04941a9a3ca3ac16e2b4327347bbc1"),
+                            ("Accept", "application/json")
+                        );
 
-                        string json = await Http.Get($"{alloha.apihost}/?token={alloha.token ?? "04941a9a3ca3ac16e2b4327347bbc1"}&kp=" + _kp, timeoutSeconds: 5, proxy: proxyManager.Get());
-                        _imdbid = Regex.Match(json ?? "", "\"id_imdb\":\"(tt[^\"]+)\"").Groups[1].Value;
-                        hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
+                        await Http.GetSpan($"https://apbugall.org/v2/movies/search?kp={_kp}", timeoutSeconds: 5, headers: bearer, spanAction: json =>
+                        {
+                            _imdbid = Rx.Match(json, "\"id_imdb\":\"(tt[^\"]+)\"");
+                        });
+
+                        if (string.IsNullOrEmpty(_imdbid))
+                            hybridCache.Set(mkey, string.Empty, DateTime.Now.AddHours(1));
+                        else
+                            hybridCache.Set(mkey, _imdbid, DateTime.Now.AddHours(8));
                     }
 
                     return Json(new { imdb_id = _imdbid, kinopoisk_id = _kp });
@@ -177,15 +185,13 @@ namespace Online.Controllers
             async Task<string> getAlloha(string imdb)
             {
                 string kpid = null;
-                var alloha = ModInit.siteConf.Alloha;
-                var proxyManager = new ProxyManager("alloha", alloha);
 
                 var bearer = HeadersModel.Init(
-                    ("Authorization", $"Bearer {alloha.token ?? "04941a9a3ca3ac16e2b4327347bbc1"}"),
+                    ("Authorization", $"Bearer 04941a9a3ca3ac16e2b4327347bbc1"),
                     ("Accept", "application/json")
                 );
 
-                await Http.GetSpan($"{alloha.apihost}/movies/search?imdb={imdb}", timeoutSeconds: 5, headers: bearer, proxy: proxyManager.Get(), spanAction: json =>
+                await Http.GetSpan($"https://apbugall.org/v2/movies/search?imdb={imdb}", timeoutSeconds: 5, headers: bearer, spanAction: json =>
                 {
                     kpid = Rx.Match(json, "\"ids\":{\"kp\":([0-9]+),");
                 });
@@ -511,15 +517,6 @@ namespace Online.Controllers
             }
             #endregion
 
-            send(ModInit.siteConf.Filmix);
-            send(ModInit.siteConf.FilmixTV, "filmixtv");
-            send(ModInit.siteConf.FilmixPartner, "fxapi");
-            send(ModInit.siteConf.Rezka);
-            send(ModInit.siteConf.RezkaPrem, "rhsprem");
-            send(ModInit.siteConf.KinoPub);
-            send(ModInit.siteConf.GetsTV, "getstv-search");
-            send(ModInit.siteConf.Alloha, "alloha-search");
-
             return Json(piders.OrderByDescending(i => i.index).ToDictionary(k => k.name, v => v.uri));
         }
         #endregion
@@ -566,7 +563,7 @@ namespace Online.Controllers
         [Route("lite/events")]
         async public Task<ActionResult> Events(string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, int year, string source, string rchtype, int serial = -1, bool life = false, bool islite = false, string account_email = null, string uid = null, string token = null, string nws_id = null)
         {
-            var online = new List<(dynamic init, string name, string url, string plugin, int index)>(50);
+            var online = new List<(string name, string url, string plugin, int index)>(50);
             bool isanime = original_language is "ja" or "zh";
 
             #region fix title
@@ -599,16 +596,13 @@ namespace Online.Controllers
             }
             #endregion
 
-            var conf = ModInit.siteConf;
-            var premiumConf = ModInit.siteConf;
-
             var user = requestInfo.user;
             JObject kitconf = loadKitConf();
 
             #region send
-            void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, BaseSettings myinit = null, string myurl = null)
+            void send(BaseSettings _init, string plugin = null, string name = null, string arg_title = null, string arg_url = null, string myurl = null)
             {
-                var init = myinit != null ? _init : loadKit(_init, kitconf);
+                var init = loadKit(_init, kitconf);
 
                 if (rchtype != null)
                 {
@@ -670,15 +664,7 @@ namespace Online.Controllers
 
                 string displayname = init.displayname ?? name ?? init.plugin;
 
-                if (!string.IsNullOrEmpty(url))
-                {
-                    if (plugin == "collaps-dash")
-                    {
-                        displayname = displayname.Replace("- 720p", "- 1080p");
-                        url = url.Replace("/collaps", "/collaps-dash");
-                    }
-                }
-                else
+                if (string.IsNullOrEmpty(url))
                 {
                     url = !string.IsNullOrEmpty(myurl)
                         ? url = "{localhost}/" + myurl + arg_url
@@ -692,7 +678,7 @@ namespace Online.Controllers
                         url += (url.Contains("?") ? "&" : "?") + "clarification=1";
                 }
 
-                online.Add((myinit, $"{displayname}{arg_title}", url, (plugin ?? init.plugin ?? name).ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
+                online.Add(($"{displayname}{arg_title}", url, (plugin ?? init.plugin ?? name).ToLower(), init.displayindex > 0 ? init.displayindex : online.Count));
             }
             #endregion
 
@@ -710,7 +696,7 @@ namespace Online.Controllers
                         if (result != null && result.Count > 0)
                         {
                             foreach (var r in result)
-                                send(r.init, r.plugin, r.name, r.arg_title, r.arg_url, r.myinit, r.myurl);
+                                send(r.init, r.plugin, r.name, r.arg_title, r.arg_url, r.myurl);
                         }
                     }
                     catch (Exception ex)
@@ -730,7 +716,7 @@ namespace Online.Controllers
                         if (result != null && result.Count > 0)
                         {
                             foreach (var r in result)
-                                send(r.init, r.plugin, r.name, r.arg_title, r.arg_url, r.myinit, r.myurl);
+                                send(r.init, r.plugin, r.name, r.arg_title, r.arg_url, r.myurl);
                         }
                     }
                     catch (Exception ex)
@@ -738,126 +724,6 @@ namespace Online.Controllers
                         Serilog.Log.Error(ex, "CatchId={CatchId}", "id_xnfe4pvc");
                     }
                 }
-            }
-            #endregion
-
-            #region VoKino
-            if (kinopoisk_id > 0 || (source != null && source.Equals("vokino", StringComparison.OrdinalIgnoreCase)))
-            {
-                string vid = kinopoisk_id.ToString();
-                if ((source != null && source.Equals("vokino", StringComparison.OrdinalIgnoreCase)) && !string.IsNullOrEmpty(id))
-                    vid = id;
-
-                var myinit = loadKit(premiumConf.VoKino, kitconf, (j, i, c) =>
-                {
-                    if (j.ContainsKey("online"))
-                        i.online = c.online;
-
-                    return i;
-                });
-
-                if (myinit.enable && !string.IsNullOrEmpty(myinit.token))
-                {
-                    async ValueTask vkino()
-                    {
-                        if (myinit.rhub || !ModInit.conf.checkOnlineSearch)
-                        {
-                            VoKinoInvoke.SendOnline(myinit, online, null);
-                        }
-                        else
-                        {
-                            if (!memoryCache.TryGetValue($"vokino:view:{vid}", out JObject view))
-                            {
-                                view = await Http.Get<JObject>($"{myinit.host}/v2/view/{vid}?token={myinit.token}", timeoutSeconds: 4);
-                                if (view != null)
-                                    memoryCache.Set($"vokino:view:{vid}", view, cacheTimeBase(180, init: premiumConf.VoKino));
-                            }
-
-                            if (view != null && view.ContainsKey("online") && view["online"] is JObject onlineObj)
-                                VoKinoInvoke.SendOnline(myinit, online, onlineObj);
-                        }
-                    }
-
-                    if (CoreInit.conf.accsdb.enable)
-                    {
-                        if (user != null)
-                        {
-                            if (myinit.group > user.group && myinit.group_hide) { }
-                            else
-                                await vkino();
-                        }
-                    }
-                    else
-                    {
-                        if (myinit.group > 0 && myinit.group_hide && (user == null || myinit.group > user.group)) { }
-                        else
-                            await vkino();
-                    }
-                }
-            }
-            #endregion
-
-            #region Filmix
-            {
-                var myinit = loadKit(premiumConf.Filmix, kitconf, (j, i, c) =>
-                {
-                    if (j.ContainsKey("pro"))
-                        i.pro = c.pro;
-                    return i;
-                });
-
-                if (string.IsNullOrEmpty(myinit.token) && (myinit.tokens == null || myinit.tokens.Length == 0) && premiumConf.Filmix.hidefreeStart > 0)
-                {
-                    if (TimeZoneTo.ByIds(["Europe/Kyiv", "Europe/Kiev", "FLE Standard Time"], out DateTime kievTime))
-                    {
-                        if (kievTime.Hour >= premiumConf.Filmix.hidefreeStart && kievTime.Hour < premiumConf.Filmix.hidefreeEnd)
-                            myinit.enable = false;
-                    }
-                }
-
-                send(myinit, myinit: myinit);
-            }
-
-            send(premiumConf.FilmixTV, "filmixtv");
-            send(premiumConf.FilmixPartner, "fxapi", "Filmix");
-            #endregion
-
-            #region Alloha
-            {
-                var myinit = loadKit(premiumConf.Alloha, kitconf, (j, i, c) =>
-                {
-                    if (j.ContainsKey("m4s"))
-                        i.m4s = c.m4s;
-                    return i;
-                });
-
-                send(myinit, myinit: myinit);
-            }
-            #endregion
-
-            #region RezkaPrem
-            {
-                var rezka_premium = loadKit(premiumConf.RezkaPrem, kitconf, (j, i, c) =>
-                {
-                    if (j.ContainsKey("premium"))
-                        i.premium = c.premium;
-                    return i;
-                });
-
-                send(rezka_premium, "rhsprem", "HDRezka", myinit: rezka_premium);
-            }
-            #endregion
-
-            #region Rezka
-            {
-                var myinit = loadKit(premiumConf.Rezka, (j, i, c) =>
-                {
-                    if (j.ContainsKey("premium"))
-                        i.premium = c.premium;
-                    return i;
-                });
-
-                send(myinit, myinit: myinit);
             }
             #endregion
 
@@ -874,20 +740,13 @@ namespace Online.Controllers
                                 return;
                         }
 
-                        online.Add((null, $"{ModInit.PidTor.displayname ?? "PidŦor"}", "{localhost}/lite/pidtor", "pidtor", ModInit.PidTor.displayindex > 0 ? ModInit.PidTor.displayindex : online.Count));
+                        online.Add(($"{ModInit.PidTor.displayname ?? "PidŦor"}", "{localhost}/lite/pidtor", "pidtor", ModInit.PidTor.displayindex > 0 ? ModInit.PidTor.displayindex : online.Count));
                     }
 
                     psend();
                 }
             }
             #endregion
-
-            send(premiumConf.KinoPub);
-            send(premiumConf.IptvOnline, "iptvonline", "iptv.online");
-            send(premiumConf.GetsTV);
-
-            if (serial == -1 || serial == 0)
-                send(premiumConf.iRemux, "remux");
 
             #region checkOnlineSearch
             if (ModInit.conf.checkOnlineSearch && !string.IsNullOrEmpty(id))
@@ -905,7 +764,7 @@ namespace Online.Controllers
 
                     foreach (var o in online.OrderBy(i => i.index))
                     {
-                        var tk = checkSearch(memkey, links, tasks.Count, o.init, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, tmdb_id, title, original_title, original_language, source, year, serial, life, rchtype);
+                        var tk = checkSearch(memkey, kitconf, links, tasks.Count, o.index, o.name, o.url, o.plugin, id, imdb_id, kinopoisk_id, tmdb_id, title, original_title, original_language, source, year, serial, life, rchtype);
                         tasks.Add(tk);
                     }
 
@@ -928,7 +787,7 @@ namespace Online.Controllers
         #endregion
 
         #region checkSearch
-        async Task checkSearch(string memkey, List<EventLinkItem> links, int indexList, dynamic init, int index, string name, string uri, string plugin,
+        async Task checkSearch(string memkey, JObject kitconf, List<EventLinkItem> links, int indexList, int index, string name, string uri, string plugin,
                                string id, string imdb_id, long kinopoisk_id, long tmdb_id, string title, string original_title, string original_language, string source, int year, int serial, bool life, string rchtype)
         {
             try
@@ -971,57 +830,17 @@ namespace Online.Controllers
                     if (quality == "2160")
                         quality = res.Contains("HDR") ? " - 4K HDR" : " - 4K";
 
-                    if (init != null)
-                    {
-                        if (balanser == "filmix")
-                        {
-                            if (!init.pro)
-                                quality = string.IsNullOrEmpty(init.token) ? " - 480p" : " - 720p";
-                        }
-
-                        if (balanser == "alloha")
-                            quality = string.IsNullOrEmpty(quality) ? (init.m4s ? " ~ 2160p" : " ~ 1080p") : quality;
-
-                        if (balanser == "rezka" || balanser == "rhs")
-                        {
-                            string rezkaq = init.premium ? " ~ 2160p" : " ~ 720p";
-                            quality = string.IsNullOrEmpty(quality) ? rezkaq : quality;
-                        }
-                    }
-
                     if (quality == string.Empty)
                     {
                         switch (balanser)
                         {
-                            case "fxapi":
-                            case "filmix":
-                            case "filmixtv":
-                            case "kinopub":
-                            case "vokino":
-                            case "vokino-alloha":
-                            case "vokino-filmix":
-                            case "alloha":
-                            case "remux":
                             case "pidtor":
-                            case "rhsprem":
-                            case "iptvonline":
                                 quality = " ~ 2160p";
-                                break;
-                            case "getstv":
-                            case "vokino-vibix":
-                            case "vokino-monframe":
-                            case "vokino-remux":
-                            case "vokino-ashdi":
-                            case "vokino-hdvb":
-                                quality = " ~ 1080p";
-                                break;
-                            case "rhs":
-                                quality = " ~ 720p";
                                 break;
                             default:
                                 if (EventListener.OnlineApiQuality != null)
                                 {
-                                    var em = new EventOnlineApiQuality(balanser);
+                                    var em = new EventOnlineApiQuality(balanser, kitconf);
                                     foreach (Func<EventOnlineApiQuality, string> handler in EventListener.OnlineApiQuality.GetInvocationList())
                                     {
                                         string eventQuality = handler.Invoke(em);

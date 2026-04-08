@@ -152,7 +152,7 @@ namespace Shared.Services.Utilities
             {
                 Span<byte> hash = stackalloc byte[16];
 
-                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: PoolInvk.bufferSize, options: FileOptions.Asynchronous))
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: PoolInvk.bufferSize))
                 {
                     int bytesWritten = MD5.HashData(stream, hash);
                     if (bytesWritten != 16)

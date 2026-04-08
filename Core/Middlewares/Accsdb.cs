@@ -21,7 +21,7 @@ namespace Core.Middlewares
 
         static Accsdb()
         {
-            Directory.CreateDirectory("cache/logs/accsdb");
+            Directory.CreateDirectory("logs/accsdb");
         }
 
         private readonly RequestDelegate _next;
@@ -197,8 +197,8 @@ namespace Core.Middlewares
                 setLogs("lock_hour", account_email);
                 countlock_day(memoryCache, true, account_email);
 
-                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.ips.log", ips.Keys);
-                File.WriteAllLines($"cache/logs/accsdb/{CrypTo.md5(account_email)}.urls.log", urls.Keys);
+                File.WriteAllLines($"logs/accsdb/{CrypTo.md5(account_email)}.ips.log", ips.Keys);
+                File.WriteAllLines($"logs/accsdb/{CrypTo.md5(account_email)}.urls.log", urls.Keys);
 
                 return islock;
             }
@@ -281,7 +281,7 @@ namespace Core.Middlewares
         static void setLogs(string name, string account_email)
         {
             var now = DateTime.Now;
-            string logFile = $"cache/logs/accsdb/{now:dd-MM-yyyy}.lock.txt";
+            string logFile = $"logs/accsdb/{now:dd-MM-yyyy}.lock.txt";
             if (logsLock != string.Empty && !File.Exists(logFile))
                 logsLock = string.Empty;
 

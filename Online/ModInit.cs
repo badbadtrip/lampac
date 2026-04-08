@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Online.Config;
 using Online.SQL;
 using Shared.Models.AppConf;
 using Shared.Models.Events;
@@ -14,7 +13,6 @@ namespace Online
         public static string modpath;
         public static ModuleConf conf;
         public static PidTorSettings PidTor;
-        public static SiteConf siteConf;
 
         public void Configure(ConfigureModel app)
         {
@@ -46,7 +44,7 @@ namespace Online
             conf = ModuleInvoke.Init("online", new ModuleConf()
             {
                 findkp = "all",
-                checkOnlineSearch = true,
+                checkOnlineSearch = CoreInit.conf.online.checkOnlineSearch,
                 spider = true,
                 spiderName = "Spider",
                 component = "lampac",
@@ -55,11 +53,6 @@ namespace Online
                 version = CoreInit.conf.online.version,
                 btn_priority_forced = CoreInit.conf.online.btn_priority_forced,
                 showquality = true,
-                with_search = new List<string>()
-                {
-                    "kinotochka", "kinobase", "kinopub", "filmix", "filmixtv", "fxapi", "rezka", "rhsprem", "remux", "kinoukr", "collaps", "collaps-dash", "hdvb", "alloha", "veoveo", "rutubemovie", "vkmovie",
-                    "animevost", "animego", "animedia", "animebesst", "anilibria", "aniliberty", "kodik", "animelib",
-                },
                 limit_map = new List<WafLimitRootMap>
                 {
                     new("^/lite/", new WafLimitMap { limit = 10, second = 1 }),
@@ -75,8 +68,6 @@ namespace Online
                 emptyVoice = true,
                 redapi = "http://jac.red"
             });
-
-            siteConf = ModuleInvoke.DeserializeInit(new SiteConf());
         }
     }
 }

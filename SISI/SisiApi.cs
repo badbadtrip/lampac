@@ -5,7 +5,6 @@ using Newtonsoft.Json.Linq;
 using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Module.Entrys;
-using Shared.PlaywrightCore;
 using System.Text;
 using System.Web;
 using IO = System.IO;
@@ -119,7 +118,6 @@ namespace SISI
         [Route("sisi")]
         async public Task<JsonResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
         {
-            var conf = ModInit.siteConf;
             var appConf = ModInit.conf;
             JObject kitconf = loadKitConf();
 
@@ -211,7 +209,7 @@ namespace SISI
 
             #region modules
             SisiModuleEntry.EnsureCache();
-            var args = new SisiEventsModel(rchtype, account_email, uid, token, lgbt);
+            var args = new SisiEventsModel(rchtype, account_email, uid, token, lgbt, kitconf);
 
             if (SisiModuleEntry.Modules != null && SisiModuleEntry.Modules.Count > 0)
             {
@@ -253,40 +251,6 @@ namespace SISI
                 }
             }
             #endregion
-
-            send("pornhubpremium.com", conf.PornHubPremium, "phubprem"); // !rhub
-            send("pornhub.com", conf.PornHub, "phub");
-            send("xvideos.com", conf.Xvideos, "xds");
-            send("xhamster.com", conf.Xhamster, "xmr");
-            send("ebalovo.porn", conf.Ebalovo, "elo");
-            send("hqporner.com", conf.HQporner, "hqr");
-
-            if (conf.Spankbang.priorityBrowser == "http" || conf.Spankbang.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Spankbang.overridehost) || conf.Spankbang.overridehosts?.Length > 0)
-                send("spankbang.com", conf.Spankbang, "sbg");
-
-            send("eporner.com", conf.Eporner, "epr");
-            send("porntrex.com", conf.Porntrex, "ptx");
-            send("xdsred", conf.XvideosRED, "xdsred");  // !rhub
-            send("xnxx.com", conf.Xnxx, "xnx");
-            send("tizam.pw", conf.Tizam, "tizam");
-
-            if (conf.BongaCams.priorityBrowser == "http" || conf.BongaCams.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.BongaCams.overridehost) || conf.BongaCams.overridehosts?.Length > 0)
-                send("bongacams.com", conf.BongaCams, "bgs");
-
-            if (conf.Runetki.priorityBrowser == "http" || conf.Runetki.rhub || PlaywrightBrowser.Status != PlaywrightStatus.disabled || !string.IsNullOrEmpty(conf.Runetki.overridehost) || conf.Runetki.overridehosts?.Length > 0)
-                send("runetki.com", conf.Runetki, "runetki");
-
-            send("chaturbate.com", conf.Chaturbate, "chu");
-
-            if (lgbt)
-            {
-                send("phubgay", conf.PornHub, "phubgay", 10_100);
-                send("phubtrans", conf.PornHub, "phubsml", 10_101);
-                send("xdsgay", conf.Xvideos, "xdsgay", 10_102);
-                send("xdstrans", conf.Xvideos, "xdssml", 10_103);
-                send("xmrgay", conf.Xhamster, "xmrgay", 10_104);
-                send("xmrtrans", conf.Xhamster, "xmrsml", 10_105);
-            }
 
             return Json(new
             {

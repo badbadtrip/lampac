@@ -21,9 +21,9 @@ namespace Core.Controllers
             if (CoreInit.conf.listen.version)
             {
                 if (type == "name")
-                    return Content("Push The Tempo", "text/plain; charset=utf-8");
+                    return Content("Clint Eastwood", "text/plain; charset=utf-8");
 
-                return Redirect("https://youtu.be/JEq10L7u3SM&t=37");
+                return Redirect("https://youtu.be/1V_xRb0x9aw");
             }
 
             return StatusCode(404);

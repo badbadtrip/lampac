@@ -14,6 +14,8 @@ namespace Shared.Models.AppConf
 
         public bool BlockedBots { get; set; }
 
+        public string[] LoadModules { get; set; }
+
         public string[] SkipModules { get; set; } = Array.Empty<string>();
 
         public BaseModuleMiddlewares Middlewares { get; set; }

@@ -9,7 +9,6 @@ global using Shared.Models.Base;
 global using Shared.Services;
 global using Shared.Services.HTML;
 global using Shared.Services.Hybrid;
-global using SISI.Services;
 global using SISI.Config;
 global using Shared.Models.SISI.Base;
 global using Shared.Models.SISI.OnResult;

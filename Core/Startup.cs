@@ -224,8 +224,9 @@ namespace Core
             Shared.Startup.Configure(null, new NativeWebSocket());
 
             #region load modules
-
             ModuleRepository.UpdateModules();
+
+            Directory.CreateDirectory(Path.Combine("cache", "module"));
 
             var skipCompilationFolders = new HashSet<string>(mods.SkipModules ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
@@ -262,9 +263,12 @@ namespace Core
                     {
                         try
                         {
-                            var mod = new RootModule();
-                            mod.assembly = Assembly.LoadFile(Path.Combine(Environment.CurrentDirectory, path));
-                            mod.name = Path.GetFileName(path);
+                            var mod = new RootModule
+                            {
+                                assembly = Assembly.LoadFile(Path.Combine(Environment.CurrentDirectory, path)),
+                                name = Path.GetFileName(path)
+                            };
+
                             CoreInit.modules.Add(mod);
 
                             Console.WriteLine($"load {modfolder}: " + mod.name);
@@ -283,23 +287,39 @@ namespace Core
 
                     foreach (string folderMod in Directory.GetDirectories(Path.Combine(AppContext.BaseDirectory, modfolder)))
                     {
-                        if (File.Exists(Path.Combine(folderMod, "manifest.json")))
-                            compilationFolders.Add(folderMod);
-                        else
-                        {
-                            foreach (string recurseMod in Directory.GetDirectories(folderMod))
-                                compilationFolders.Add(recurseMod);
-                        }
-                    }
-
-                    foreach (string folderMod in compilationFolders)
-                    {
                         string folderName = Path.GetFileName(folderMod);
                         if (skipCompilationFolders.Contains(folderName))
                         {
                             Console.WriteLine($"skip compilation folder {modfolder}: {folderName}");
                             continue;
                         }
+
+                        if (File.Exists(Path.Combine(folderMod, "manifest.json")))
+                            compilationFolders.Add(folderMod);
+                        else
+                        {
+                            foreach (string recurseMod in Directory.GetDirectories(folderMod))
+                            {
+                                folderName = Path.GetFileName(recurseMod);
+                                if (skipCompilationFolders.Contains(folderName))
+                                {
+                                    Console.WriteLine($"skip compilation folder {modfolder}: {folderName}");
+                                    continue;
+                                }
+
+                                compilationFolders.Add(recurseMod);
+                            }
+                        }
+                    }
+
+                    foreach (string folderMod in compilationFolders)
+                    {
+                        if (mods.LoadModules == null || mods.LoadModules.Length == 0)
+                            continue;
+
+                        string folderName = Path.GetFileName(folderMod);
+                        if (mods.LoadModules[0] != ".*" && !mods.LoadModules.Contains(folderName))
+                            continue;
 
                         string manifest = Path.Combine(folderMod, "manifest.json");
                         if (!File.Exists(manifest))
@@ -320,7 +340,7 @@ namespace Core
                             throw new Exception();
                         }
 
-                        Console.WriteLine($"compilation {folderName}");
+                        Console.WriteLine($"compilation {mod.name}");
 
                         mod.assembly = build.assembly;
                         mod.assemblyLoadContext = build.alc;
@@ -347,7 +367,7 @@ namespace Core
                     if (initType != null)
                     {
                         if (Activator.CreateInstance(initType) is not IModuleConfigure confInstance)
-                            continue;
+                            return;
 
                         confInstance.Configure(new ConfigureModel()
                         {
@@ -363,7 +383,7 @@ namespace Core
                     Console.WriteLine($"Configure module {mod.name}: {ex.Message}\n\n");
                     throw new Exception();
                 }
-            }
+            };
 
             Console.WriteLine();
             #endregion
@@ -404,13 +424,12 @@ namespace Core
                     LoadedModule(app, mod);
                     Console.WriteLine($"loaded module: {mod.name}");
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    Console.WriteLine($"\nModule {mod.name}: {ex.Message}\n\n");
-                    throw new Exception();
+                    Console.WriteLine($"\nModule {mod.name}: {ex.Message}\n");
+                    throw;
                 }
-            }
-            Console.WriteLine("\n");
+            };
             #endregion
 
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
@@ -419,6 +438,8 @@ namespace Core
             GC.Collect();
 
             File.WriteAllText("current.conf", JsonConvert.SerializeObject(CoreInit.CurrentConf, Formatting.Indented));
+
+            Console.WriteLine("\nConfigure complete");
 
             #region UseExceptionHandler
             app.UseExceptionHandler(errorApp =>
