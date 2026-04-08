@@ -24,7 +24,7 @@ namespace Animebesst
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
 
-        rhubFallback:
+            rhubFallback:
             if (string.IsNullOrEmpty(uri))
             {
                 if (string.IsNullOrWhiteSpace(title))

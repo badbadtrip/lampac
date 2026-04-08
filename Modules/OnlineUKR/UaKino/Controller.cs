@@ -39,7 +39,7 @@ namespace UaKino
                 if (string.IsNullOrWhiteSpace(title ?? original_title))
                     return OnError();
 
-            searchFallback:
+                searchFallback:
 
                 string query = (similar || clarification == 1) ? title : original_title;
 
@@ -69,7 +69,7 @@ namespace UaKino
                     return stpl;
                 });
             }
-            #endregion
+        #endregion
 
         rhubFallback:
 

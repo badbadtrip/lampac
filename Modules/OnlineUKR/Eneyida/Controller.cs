@@ -40,7 +40,7 @@ namespace Eneyida
                 if (string.IsNullOrWhiteSpace(title ?? original_title))
                     return OnError();
 
-            searchFallback:
+                searchFallback:
 
                 string _y = year.ToString();
                 string query = (similar || clarification == 1) ? title : original_title;
@@ -76,7 +76,7 @@ namespace Eneyida
 
                 href = search.Value.similars.FirstOrDefault(i => i.year == _y).href;
             }
-            #endregion
+        #endregion
 
         rhubFallback:
 

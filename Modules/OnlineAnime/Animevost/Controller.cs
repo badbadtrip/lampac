@@ -28,7 +28,7 @@ namespace Animevost
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
 
-        rhubFallback:
+            rhubFallback:
             if (string.IsNullOrWhiteSpace(uri))
             {
                 #region Поиск

@@ -383,7 +383,8 @@ namespace Core
                     Console.WriteLine($"Configure module {mod.name}: {ex.Message}\n\n");
                     throw new Exception();
                 }
-            };
+            }
+            ;
 
             Console.WriteLine();
             #endregion
@@ -429,7 +430,8 @@ namespace Core
                     Console.WriteLine($"\nModule {mod.name}: {ex.Message}\n");
                     throw;
                 }
-            };
+            }
+            ;
             #endregion
 
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;

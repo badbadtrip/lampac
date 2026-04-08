@@ -53,7 +53,7 @@ namespace AsiaGe
                 if (string.IsNullOrWhiteSpace(searchTitle))
                     return OnError();
 
-            rhubSearchFallback:
+                rhubSearchFallback:
 
                 var search = await InvokeCacheResult<EmbedModel>($"asiage:search:{searchTitle}:{year}", TimeSpan.FromHours(4), async e =>
                 {
@@ -89,7 +89,7 @@ namespace AsiaGe
                 if (string.IsNullOrWhiteSpace(href))
                     return ContentTpl(search.Value.similar);
             }
-            #endregion
+        #endregion
 
         rhubFallback:
 

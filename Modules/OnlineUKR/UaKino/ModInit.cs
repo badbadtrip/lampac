@@ -19,7 +19,7 @@ namespace UaKino
             var online = new List<ModuleOnlineItem>();
 
             if (PlaywrightBrowser.Status != PlaywrightStatus.disabled)
-                online.Add(new (conf, arg_title: " (Украинский)"));
+                online.Add(new(conf, arg_title: " (Украинский)"));
 
             return online;
         }

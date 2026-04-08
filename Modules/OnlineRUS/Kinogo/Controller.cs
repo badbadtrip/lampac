@@ -34,7 +34,7 @@ namespace Kinogo
                 if (string.IsNullOrEmpty(title))
                     return OnError("search params");
 
-            reset_search:
+                reset_search:
                 var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", TimeSpan.FromHours(4), async e =>
                 {
                     string search = rch?.enable == true
@@ -68,7 +68,7 @@ namespace Kinogo
                 return OnError("href");
 
             #region embed
-        reset_embed:
+            reset_embed:
 
             var cache = await InvokeCacheResult<List<PlaylistItem>>(ipkey(href), 20, async e =>
             {

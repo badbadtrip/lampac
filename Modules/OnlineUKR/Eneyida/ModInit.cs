@@ -15,8 +15,8 @@ namespace Eneyida
 
         public List<ModuleOnlineItem> Invoke(HttpContext httpContext, RequestModel requestInfo, string host, OnlineEventsModel args)
         {
-            return new List<ModuleOnlineItem>() 
-            { 
+            return new List<ModuleOnlineItem>()
+            {
                 new ModuleOnlineItem(conf, arg_title: " (Украинский)")
             };
         }

@@ -85,7 +85,7 @@ namespace AnimeON
 
                 return ContentTpl(stpl);
             }
-            #endregion
+        #endregion
 
         rhubFallbackTranslations:
             var translations = await InvokeCacheResult<List<TranslationOption>>($"animeon:translations:{animeid}", TimeSpan.FromHours(2), async e =>

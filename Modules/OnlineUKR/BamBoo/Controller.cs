@@ -34,7 +34,7 @@ namespace BamBoo
                 if (string.IsNullOrWhiteSpace(title ?? original_title))
                     return OnError();
 
-            searchFallback:
+                searchFallback:
 
                 string query = (similar || clarification == 1) ? title : original_title;
 
@@ -62,7 +62,7 @@ namespace BamBoo
                     return stpl;
                 });
             }
-            #endregion
+        #endregion
 
         rhubFallback:
 

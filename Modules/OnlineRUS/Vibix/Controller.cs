@@ -34,7 +34,7 @@ namespace Vibix
             if (data == null)
                 return OnError();
 
-        rhubFallback:
+            rhubFallback:
             var cache = await InvokeCacheResult<EmbedModel>(ipkey($"vibix:iframe:{data.iframe_url}"), 20, async e =>
             {
                 string api_url = data.iframe_url
