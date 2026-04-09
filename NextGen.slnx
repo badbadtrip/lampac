@@ -13,6 +13,7 @@
     <Project Path="Modules/Kit/Kit.csproj" />
     <Project Path="Modules/LampaWeb/LampaWeb.csproj" />
     <Project Path="Modules/NextHUB/NextHUB.csproj" />
+    <Project Path="Modules/PidTor/PidTor.csproj" />
     <Project Path="Modules/TorrServer/TorrServer.csproj" />
     <Project Path="Modules/Tracks/Tracks.csproj" />
     <Project Path="Modules/Transcoding/Transcoding.csproj" />
