@@ -42,22 +42,21 @@ namespace AdminPanel
                 new[] { "Catalog", "DLNA", "JacRed", "Sync", "TimeCode", "TorrServer", "Tracks", "transcoding", "TmdbProxy", "CubProxy", "WebLog" }),
 
             new("src-anime", "Источники · аниме", "Онлайн-балансеры аниме и смежные (в т.ч. Kodik).",
-                new[] { "AnilibriaOnline", "AniLiberty", "AnimeLib", "AniMedia", "Animebesst", "AnimeGo", "Animevost", "Dreamerscast", "Kodik", "MoonAnime" }),
+                new[] { "AniLiberty", "AniLibria", "Animebesst", "AnimeGo", "AnimeLib", "AnimeON", "Animevost", "AniMedia", "Dreamerscast", "Kodik", "Mikai", "MoonAnime" }),
             new("src-embed", "Источники · встраиваемые плееры", "Embed и агрегаторы сторонних плееров.",
-                new[] { "Hydraflix", "Vidsrc", "MovPI", "VidLink", "Videasy", "Smashystream", "Autoembed", "Playembed", "Twoembed", "Rgshows" }),
+                new[] { "Autoembed", "Hydraflix", "MovPI", "Playembed", "Rgshows", "Smashystream", "Twoembed", "VidLink", "Videasy", "Vidsrc" }),
             new("src-vod", "Источники · VOD и CDN", "Кино, сериалы, региональные и CDN-провайдеры.",
                 new[]
                 {
-                    "Ashdi", "Kinoukr", "Eneyida", "IptvOnline", "Alloha", "FilmixPartner", "Filmix", "FilmixTV", "KinoPub",
-                    "RezkaPrem", "VoKino", "iRemux", "GetsTV", "VeoVeo", "Rezka", "Collaps", "Kinotochka", "Geosaitebi", "AsiaGe",
-                    "LeProduction", "Kinoflix", "RutubeMovie", "VkMovie", "Plvideo", "CDNvideohub", "Redheadsound", "FlixCDN", "VideoDB",
-                    "CDNmovies", "VDBmovies", "FanCDN", "Kinobase", "Kinogo", "VideoCDN", "Lumex", "HDVB", "Vibix", "Videoseed", "Mirage"
+                    "Alloha", "Ashdi", "AsiaGe", "BamBoo", "CDNvideohub", "Collaps", "Eneyida", "FanCDN", "Filmix", "FilmixPartner", "FilmixTV", "FlixCDN",
+                    "Geosaitebi", "GetsTV", "HDVB", "HdvbUA", "IptvOnline", "iRemux", "Kinobase", "Kinoflix", "Kinogo", "Kinotochka", "Kinoukr", "KinoPub",
+                    "LeProduction", "Mirage", "Rezka", "RezkaPrem", "RutubeMovie", "Tortuga", "UaKino", "VideoDB", "Videoseed", "VeoVeo", "Vibix", "VkMovie", "VoKino"
                 }),
             new("src-adult", "Источники · 18+", "SISI / взрослые сайты.",
                 new[]
                 {
-                    "BongaCams", "Runetki", "Chaturbate", "Ebalovo", "Eporner", "HQporner", "Porntrex", "Spankbang", "Xhamster",
-                    "Tizam", "Xvideos", "Xnxx", "XvideosRED", "PornHub", "PornHubPremium"
+                    "BongaCams", "Chaturbate", "Ebalovo", "Eporner", "HQporner", "PornHub", "PornHubPremium", "Porntrex", "Runetki", "Spankbang", "Tizam",
+                    "Xhamster", "Xnxx", "Xvideos", "XvideosRED"
                 }),
         };
 
