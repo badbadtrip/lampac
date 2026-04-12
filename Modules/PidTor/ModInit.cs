@@ -13,6 +13,7 @@ namespace PidTor
     public class ModInit : IModuleLoaded, IModuleOnline
     {
         public static PidTorSettings conf;
+        public static int tsport;
 
         public List<ModuleOnlineItem> Invoke(HttpContext httpContext, RequestModel requestInfo, string host, OnlineEventsModel args)
         {
@@ -43,12 +44,14 @@ namespace PidTor
 
             updateConf();
             EventListener.UpdateInitFile += updateConf;
+            EventListener.UpdateCurrentConf += updateCurrentConf;
             EventListener.OnlineApiQuality += onlineApiQuality;
         }
 
         public void Dispose()
         {
             EventListener.UpdateInitFile -= updateConf;
+            EventListener.UpdateCurrentConf -= updateCurrentConf;
             EventListener.OnlineApiQuality -= onlineApiQuality;
         }
 
@@ -62,6 +65,14 @@ namespace PidTor
                 emptyVoice = true,
                 redapi = "http://jac.red"
             });
+        }
+
+        void updateCurrentConf()
+        {
+            if (CoreInit.CurrentConf.TryGetValue("TorrServer", out var torrServerConf))
+                tsport = torrServerConf.Value<int>("tsport");
+            else
+                tsport = 9085;
         }
 
         string onlineApiQuality(EventOnlineApiQuality e)

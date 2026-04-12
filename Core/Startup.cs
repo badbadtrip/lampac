@@ -384,7 +384,6 @@ namespace Core
                     throw new Exception();
                 }
             }
-            ;
 
             Console.WriteLine();
             #endregion
@@ -431,8 +430,13 @@ namespace Core
                     throw;
                 }
             }
-            ;
             #endregion
+
+            if (EventListener.UpdateCurrentConf != null)
+            {
+                foreach (Action handler in EventListener.UpdateCurrentConf.GetInvocationList())
+                    handler();
+            }
 
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);

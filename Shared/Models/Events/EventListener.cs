@@ -11,6 +11,8 @@ namespace Shared.Models.Events
 
         public static Action UpdateInitFile;
 
+        public static Action UpdateCurrentConf;
+
         public static Func<EventProxyApiCreateHttpRequest, Task> ProxyApiCreateHttpRequest;
 
         public static Func<EventProxyApiCacheStream, (string uriKey, string contentType)> ProxyApiCacheStream;

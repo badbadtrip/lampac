@@ -372,10 +372,10 @@ namespace PidTor
                             string accs = System.IO.File.ReadAllText("data/ts/accs.db");
                             string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
 
-                            return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{CoreInit.conf.listen.localhost}:9080");
+                            return (HeadersModel.Init("Authorization", $"Basic {CrypTo.Base64($"ts:{passwd}")}"), $"http://{CoreInit.conf.listen.localhost}:{ModInit.tsport}");
                         }
 
-                        return (null, $"http://{CoreInit.conf.listen.localhost}:9080");
+                        return (null, $"http://{CoreInit.conf.listen.localhost}:{ModInit.tsport}");
                     }
 
                     if (init.auth_torrs?.FirstOrDefault(i => i.enable) != null)
@@ -498,7 +498,7 @@ namespace PidTor
                     string accs = System.IO.File.ReadAllText("data/ts/accs.db");
                     string passwd = Regex.Match(accs, "\"ts\":\"([^\"]+)\"").Groups[1].Value;
 
-                    return await auth_stream($"http://{CoreInit.conf.listen.localhost}:9080", "ts", passwd, false, uhost: $"{host}/ts");
+                    return await auth_stream($"http://{CoreInit.conf.listen.localhost}:{ModInit.tsport}", "ts", passwd, false, uhost: $"{host}/ts");
                 }
 
                 return Redirect($"{host}/ts/stream?link={HttpUtility.UrlEncode(magnet)}&index={index}&play");

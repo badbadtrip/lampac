@@ -71,6 +71,12 @@ namespace Shared
                                         handler();
                                 }
 
+                                if (EventListener.UpdateCurrentConf != null)
+                                {
+                                    foreach (Action handler in EventListener.UpdateCurrentConf.GetInvocationList())
+                                        handler();
+                                }
+
                                 string init = JsonConvert.SerializeObject(CurrentConf, Formatting.Indented, new JsonSerializerSettings()
                                 {
                                     NullValueHandling = NullValueHandling.Ignore,

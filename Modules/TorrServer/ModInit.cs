@@ -215,7 +215,7 @@ namespace TorrServer
         {
             conf = ModuleInvoke.Init("TorrServer", new ModuleConf()
             {
-                tsport = 9080,
+                tsport = 9085,
                 releases = "MatriX.135",
                 defaultPasswd = "ts",
                 checkfile = true,
