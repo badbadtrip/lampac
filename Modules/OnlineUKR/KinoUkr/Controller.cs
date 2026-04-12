@@ -29,7 +29,7 @@ namespace KinoUkr
             {
                 if (source.Equals("kinoukr", StringComparison.OrdinalIgnoreCase))
                 {
-                rhubFallback:
+                    rhubFallback:
 
                     var cache = await InvokeCacheResult($"kinoukr:view:{id}", 240,
                         () => oninvk.Embed($"{init.host}/{id}")
@@ -79,7 +79,10 @@ namespace KinoUkr
                 ? "tortuga"
                 : "ashdi";
 
-            return LocalRedirect(accsArgs($"/lite/{target}?uri={EncryptQuery(iframe)}"));
+
+            string args = $"?uri={EncryptQuery(iframe)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}";
+
+            return LocalRedirect(accsArgs($"/lite/{target}" + args));
         }
     }
 }

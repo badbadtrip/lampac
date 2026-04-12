@@ -39,7 +39,7 @@ namespace UaKino
                 if (string.IsNullOrWhiteSpace(title ?? original_title))
                     return OnError();
 
-                searchFallback:
+            searchFallback:
 
                 string query = (similar || clarification == 1) ? title : original_title;
 
@@ -69,7 +69,7 @@ namespace UaKino
                     return stpl;
                 });
             }
-        #endregion
+            #endregion
 
         rhubFallback:
 
@@ -83,7 +83,9 @@ namespace UaKino
             if (string.IsNullOrEmpty(cache.Value))
                 return OnError();
 
-            return LocalRedirect(accsArgs($"/lite/hdvbua?uri={EncryptQuery(cache.Value)}"));
+            string args = $"?uri={EncryptQuery(cache.Value)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&rjson={rjson}";
+
+            return LocalRedirect(accsArgs("/lite/hdvbua" + args));
         }
     }
 }

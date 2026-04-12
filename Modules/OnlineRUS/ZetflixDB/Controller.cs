@@ -3,6 +3,7 @@ using Shared;
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace ZetflixDB
 {
@@ -21,8 +22,9 @@ namespace ZetflixDB
                 return badInitMsg;
 
             string uri = $"{init.apihost}/embed/AO/kinopoisk/{Encode(kinopoisk_id)}/";
+            string args = $"?uri={EncryptQuery(uri)}&title={HttpUtility.UrlEncode(title)}&original_title={HttpUtility.UrlEncode(original_title)}&rjson={rjson}";
 
-            return LocalRedirect(accsArgs($"/lite/videodb?uri={EncryptQuery(uri)}"));
+            return LocalRedirect(accsArgs("/lite/videodb" + args));
         }
 
         static string Encode(long kinopoisk_id)
