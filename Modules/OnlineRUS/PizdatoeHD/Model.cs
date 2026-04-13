@@ -9,8 +9,6 @@ namespace PizdatoeHD
         public string content { get; set; }
 
         public string trs { get; set; }
-
-        public string id { get; set; }
     }
 
     public class MovieModel
@@ -61,5 +59,23 @@ namespace PizdatoeHD
         public string title { get; set; }
 
         public string stream_url { get; set; }
+    }
+
+
+    public class DbModel
+    {
+        public string title { get; set; }
+
+        public string original_title { get; set; }
+
+        public string year { get; set; }
+
+        public string imdb { get; set; }
+
+        public string kp { get; set; }
+
+        public string href { get; set; }
+
+        public string img { get; set; }
     }
 }

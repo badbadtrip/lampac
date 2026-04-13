@@ -15,7 +15,7 @@ namespace PizdatoeHD
 {
     public class PizdaInvoke
     {
-        #region RezkaInvoke
+        #region PizdaInvoke
         OnlinesSettings init;
         string host, scheme, route;
         bool usehls, userprem, usereserve;
@@ -129,10 +129,7 @@ namespace PizdatoeHD
         #region Embed
         public Model Embed(string href, string html)
         {
-            var result = new Model
-            {
-                id = Regex.Match(href, "([0-9]+)-[^/]+\\.html").Groups[1].Value
-            };
+            var result = new Model();
 
             bool IsTrailer = html.Contains("Ожидаем фильм в хорошем качестве", StringComparison.OrdinalIgnoreCase);
 
@@ -349,7 +346,7 @@ namespace PizdatoeHD
                             continue;
 
                         string voice = HttpUtility.UrlEncode(voice_href);
-                        string link = host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={voice}&id={result.id}&t={match.Groups["translator"].Value}";
+                        string link = host + $"{route}?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={voice}&t={match.Groups["translator"].Value}";
 
                         vtpl.Append(name, match.Groups["translator"].Value == result.trs, link);
 
@@ -386,14 +383,13 @@ namespace PizdatoeHD
                         #region Серии
                         if (m.Groups["season"].Value == sArhc && !eshash.Contains(m.Groups["name"].Value))
                         {
-                            eshash.Add(m.Groups["name"].Value);
-                            string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&id={result.id}&t={result.trs}&s={s}&e={m.Groups["episode"].Value}";
-
                             string voice_href = Regex.Match(m.Groups[0].Value, "href=\"(https?://[^/]+)?/([^\"]+)\"").Groups[2].Value;
                             if (string.IsNullOrEmpty(voice_href))
                                 continue;
 
-                            link += $"&voice={HttpUtility.UrlEncode(voice_href)}";
+                            eshash.Add(m.Groups["name"].Value);
+
+                            string link = host + $"{route}/movie?title={enc_title}&original_title={enc_original_title}&voice={HttpUtility.UrlEncode(voice_href)}&t={result.trs}&s={s}&e={m.Groups["episode"].Value}";
 
                             string stream = usehls ? $"{link.Replace("/movie", "/movie.m3u8")}&play=true" : $"{link}&play=true";
                             stream += args;

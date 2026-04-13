@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
 using Shared;
+using Shared.Models;
 using Shared.Models.Base;
 using Shared.Models.Templates;
 using Shared.PlaywrightCore;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -30,7 +33,7 @@ namespace PizdatoeHD
 
         [HttpGet]
         [Route("lite/pizdatoehd")]
-        async public Task<ActionResult> Index(string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
+        async public Task<ActionResult> Index(string imdb_id, long kinopoisk_id, string title, string original_title, int clarification, int year, int s = -1, string href = null, bool rjson = false, int serial = -1, bool similar = false, string source = null, string id = null)
         {
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
@@ -47,30 +50,64 @@ namespace PizdatoeHD
                 #region search
                 if (string.IsNullOrEmpty(href))
                 {
-                    var search = await InvokeCacheResult<SearchModel>($"pizdatoehd:search:{title}:{original_title}:{clarification}:{year}", 240, textJson: true, onget: async e =>
+                    CacheResult<SearchModel> search;
+
+                    string _kp = kinopoisk_id.ToString();
+                    var dbEntry = ModInit.PizdatoeDb.Where(e => (imdb_id != null && e.Value.imdb == imdb_id) || e.Value.kp == _kp);
+                    if (dbEntry.Any())
                     {
-                        string search_uri = $"{init.host}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
-
-                        var result = await page.GotoAsync(search_uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
-                        if (result == null)
-                            return e.Fail("не удалось загрузить страницу", refresh_proxy: true);
-
-                        string html = await result.TextAsync();
-                        if (string.IsNullOrEmpty(html))
-                            return e.Fail("не удалось получить содержимое страницы");
-
-                        var content = oninvk.Search(search_uri, html, title, original_title, year);
-                        if (content == null || content.IsError)
-                            return e.Fail(string.Empty, refresh_proxy: true);
-
-                        if (content.IsEmpty)
+                        var model = new SearchModel()
                         {
-                            if (rch.enable || content.content != null)
-                                return e.Fail(content.content ?? "content");
+                            similar = new List<SimilarModel>()
+                        };
+
+                        foreach (var entry in dbEntry)
+                        {
+                            model.similar.Add(new SimilarModel()
+                            {
+                                title = entry.Value.title,
+                                year = entry.Value.year,
+                                href = entry.Value.href,
+                                img = entry.Value.img
+                            });
                         }
 
-                        return e.Success(content);
-                    });
+                        if (model.similar.Count == 1)
+                            model.href = model.similar[0].href;
+
+                        search = new CacheResult<SearchModel>()
+                        {
+                            IsSuccess = true,
+                            Value = model
+                        };
+                    }
+                    else
+                    {
+                        search = await InvokeCacheResult<SearchModel>($"pizdatoehd:search:{title}:{original_title}:{clarification}:{year}", 240, textJson: true, onget: async e =>
+                        {
+                            string search_uri = $"{init.host}/search/?do=search&subaction=search&q={HttpUtility.UrlEncode(clarification == 1 ? title : (original_title ?? title))}";
+
+                            var result = await page.GotoAsync(search_uri, new PageGotoOptions() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                            if (result == null)
+                                return e.Fail("не удалось загрузить страницу", refresh_proxy: true);
+
+                            string html = await result.TextAsync();
+                            if (string.IsNullOrEmpty(html))
+                                return e.Fail("не удалось получить содержимое страницы");
+
+                            var content = oninvk.Search(search_uri, html, title, original_title, year);
+                            if (content == null || content.IsError)
+                                return e.Fail(string.Empty, refresh_proxy: true);
+
+                            if (content.IsEmpty)
+                            {
+                                if (rch.enable || content.content != null)
+                                    return e.Fail(content.content ?? "content");
+                            }
+
+                            return e.Success(content);
+                        });
+                    }
 
                     if (search.ErrorMsg != null)
                         return ShowError(string.IsNullOrEmpty(search.ErrorMsg) ? "поиск не дал результатов" : search.ErrorMsg);
