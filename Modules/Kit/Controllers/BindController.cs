@@ -328,34 +328,12 @@ namespace KitMod.Controllers
 
                 var bwaconf = loadconf(aesGcmKey, filePath);
 
-                if (premium)
+                bwaconf["Rezka"] = new JObject()
                 {
-                    bwaconf["RezkaPrem"] = new JObject()
-                    {
-                        ["enable"] = true,
-                        ["cookie"] = cookie
-                    };
-
-                    if (bwaconf.ContainsKey("Rezka"))
-                    {
-                        bwaconf["Rezka"]["enable"] = false;
-                    }
-                    else
-                    {
-                        bwaconf["Rezka"] = new JObject()
-                        {
-                            ["enable"] = false
-                        };
-                    }
-                }
-                else
-                {
-                    bwaconf["Rezka"] = new JObject()
-                    {
-                        ["enable"] = true,
-                        ["cookie"] = cookie
-                    };
-                }
+                    ["enable"] = true,
+                    ["premium"] = premium,
+                    ["cookie"] = cookie
+                };
 
                 saveBind(aesGcmKey, bwaconf);
                 return LocalRedirect("/kit");
