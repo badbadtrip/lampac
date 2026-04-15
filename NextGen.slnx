@@ -94,6 +94,7 @@
     <Project Path="Modules/OnlineRUS/Mirage/Mirage.csproj" />
     <Project Path="Modules/OnlineRUS/PizdatoeHD/PizdatoeHD.csproj" />
     <Project Path="Modules/OnlineRUS/RutubeMovie/RutubeMovie.csproj" />
+    <Project Path="Modules/OnlineRUS/Spectre/Spectre.csproj" />
     <Project Path="Modules/OnlineRUS/VeoVeo/VeoVeo.csproj" />
     <Project Path="Modules/OnlineRUS/Vibix/Vibix.csproj" />
     <Project Path="Modules/OnlineRUS/VideoDB/VideoDB.csproj" />
