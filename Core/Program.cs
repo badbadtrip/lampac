@@ -86,7 +86,7 @@ namespace Core
 
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-			
+
             AppContext.SetSwitch("System.Net.Http.EnableActivityPropagation", false);
 
             var init = CoreInit.conf;
