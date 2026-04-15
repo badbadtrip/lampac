@@ -27,7 +27,7 @@ namespace Spectre
         static CancellationTokenSource wscts;
         static DateTime lastreq;
         static Timer timer;
-        static string edge_hash, requestReferer;
+        static string edge_hash, resolution, requestOrigin, requestReferer;
         static int current_time = 0;
 
         static SpectreController()
@@ -88,7 +88,7 @@ namespace Spectre
                     e.requestMessage.Headers.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5");
                     e.requestMessage.Headers.TryAddWithoutValidation("Accepts-Controls", edge_hash);
                     e.requestMessage.Headers.TryAddWithoutValidation("Authorizations", "Bearer pXzvbyDGLYyB6VkwsWZDv3iMKZtsXNzpzRyxZUcsKHXxsSeaYakbo3hw9mBFRc5VQTpqAX6BW8aDEqyLaHYcXSQiV6KHYTVTK6MYRphNAy5sBjtrevqkDzKmLqNdfMZGEU9NELjmtKfZy3RNGzCd767sNh1mXEj4tCcvqndHtzmwAbZNkhm4ghDEasodotMBewypNQ56uotJAQGX11csfeRfBAPk8DcUWWkkqzxca8vbnEw12vUFbBzT6hz8ZB3F3dzUhUXoL2cr1WM1bXQArRCS1MUNMz3X5WDMMQoZKxj2AMTRqp7QQX4dDB9B7VzEZTmyFULhm1AcHHMkoMvSVvKYoBoAKLycYAgMHeD4ECJcGEAGpnkJhrV57zQ7");
-                    e.requestMessage.Headers.TryAddWithoutValidation("Origin", ModInit.conf.linkhost);
+                    e.requestMessage.Headers.TryAddWithoutValidation("Origin", requestOrigin);
                     e.requestMessage.Headers.TryAddWithoutValidation("Sec-Fetch-Site", "cross-site");
                     e.requestMessage.Headers.TryAddWithoutValidation("Sec-Fetch-Mode", "cors");
                     e.requestMessage.Headers.TryAddWithoutValidation("Sec-Fetch-Dest", "empty");
@@ -620,7 +620,7 @@ namespace Spectre
                                 var jo = JsonConvert.DeserializeObject<JObject>(json);
 
                                 requestReferer = route.Request.Headers["referer"];
-                                //Console.WriteLine("\nReferer: " + requestReferer);
+                                requestOrigin = route.Request.Headers["origin"];
 
                                 wsUri = jo.Value<string>("pnr") + $"?sid={jo.Value<string>("pnk")}&v=2.1&t={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
 
@@ -632,16 +632,27 @@ namespace Spectre
                                     jo["hlsSource"]
                                         .FirstOrDefault() as JObject;
 
-                                string rawUrl = selectedItem?["quality"]
-                                    .Children<JProperty>()
-                                    .Where(p => !(init.m4s && p.Name == "2160"))
-                                    .Select(p => (string)p.Value)
-                                    .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+                                foreach (var q in selectedItem["quality"].Children<JProperty>())
+                                {
+                                    if (!init.m4s && (q.Name == "2160" || q.Name == "1440"))
+                                        continue;
 
-                                browser.SetPageResult(rawUrl
-                                    .Split(new[] { " or " }, StringSplitOptions.RemoveEmptyEntries)
-                                    .FirstOrDefault()?
-                                    .Trim());
+                                    string link = (string)q.Value;
+                                    if (string.IsNullOrWhiteSpace(link))
+                                        continue;
+
+                                    resolution = q.Name;
+
+                                    browser.SetPageResult(link
+                                        .Split(new[] { " or " }, StringSplitOptions.RemoveEmptyEntries)
+                                        .FirstOrDefault()?
+                                        .Trim());
+
+                                    Console.WriteLine("\nReferer: " + requestReferer);
+                                    Console.WriteLine("Origin: " + requestOrigin);
+                                    Console.WriteLine("resolution: " + resolution);
+                                    break;
+                                }
 
                                 await route.FulfillAsync(new RouteFulfillOptions
                                 {
@@ -698,8 +709,6 @@ namespace Spectre
                 ws.Options.SetRequestHeader("User-Agent", Http.UserAgent);
                 
                 wscts = new CancellationTokenSource();
-
-                string resolution = init.m4s ? "2160" : "1080";
 
                 await ws.ConnectAsync(new Uri(wsUri), wscts.Token);
 
