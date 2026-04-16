@@ -568,7 +568,7 @@ namespace Spectre
 
                     try
                     {
-                        _= ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                        _ = ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                         ws = null;
                     }
                     catch { }
@@ -707,7 +707,7 @@ namespace Spectre
             {
                 ws = new ClientWebSocket();
                 ws.Options.SetRequestHeader("User-Agent", Http.UserAgent);
-                
+
                 wscts = new CancellationTokenSource();
 
                 await ws.ConnectAsync(new Uri(wsUri), wscts.Token);
