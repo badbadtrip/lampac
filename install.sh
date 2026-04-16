@@ -20,6 +20,13 @@ readonly RELEASE_ZIP_NAME="lampac-nextgen.zip"
 readonly DOTNET_INSTALL_DIR="${LAMPAC_DOTNET_ROOT:-/usr/share/dotnet}"
 readonly DOTNET_CHANNEL="${LAMPAC_DOTNET_CHANNEL:-10.0}"
 readonly LISTEN_PORT="${LAMPAC_PORT:-9118}"
+# Paths under $INSTALL_ROOT: extracted from the release on fresh install; on
+# `install.sh --update`, an existing file is stashed and restored after unpack so
+# the release copy does not replace local data (missing files still get the zip version).
+readonly UPDATE_PRESERVE_REL_PATHS=(
+  "data/kinoukr.json"
+  "data/PizdatoeDb.json"
+)
 
 REMOVE=0
 UPDATE=0
@@ -253,16 +260,41 @@ set_install_ownership() {
   chown -R "${LAMPAC_USER}:${LAMPAC_USER}" "$INSTALL_ROOT"
 }
 
+stash_preserved_paths_for_update() {
+  local backup_dir="$1"
+  local rel
+  for rel in "${UPDATE_PRESERVE_REL_PATHS[@]}"; do
+    if [[ -f "${INSTALL_ROOT}/${rel}" ]]; then
+      mkdir -p "$(dirname "${backup_dir}/${rel}")"
+      cp -a "${INSTALL_ROOT}/${rel}" "${backup_dir}/${rel}"
+      log_info "Will preserve existing ${rel} after unpacking the release."
+    fi
+  done
+}
+
+apply_stashed_preserved_paths() {
+  local backup_dir="$1"
+  local rel
+  for rel in "${UPDATE_PRESERVE_REL_PATHS[@]}"; do
+    if [[ -f "${backup_dir}/${rel}" ]]; then
+      mkdir -p "$(dirname "${INSTALL_ROOT}/${rel}")"
+      cp -a "${backup_dir}/${rel}" "${INSTALL_ROOT}/${rel}"
+      log_info "Restored local ${rel} (release copy did not replace it)."
+    fi
+  done
+  rm -rf "${backup_dir}"
+}
+
 download_and_unpack() {
   local dest_zip="$1"
   log_info "Downloading: $PUBLISH_URL"
   if ! curl -fSL --retry 3 -o "$dest_zip" "$PUBLISH_URL"; then
     log_err "Download failed."
-    exit 1
+    return 1
   fi
   if [[ ! -s "$dest_zip" ]]; then
     log_err "Downloaded file is empty."
-    exit 1
+    return 1
   fi
   log_info "Extracting to $INSTALL_ROOT ..."
   mkdir -p "$INSTALL_ROOT"
@@ -270,7 +302,7 @@ download_and_unpack() {
   rm -f "$dest_zip"
   if [[ ! -f "${INSTALL_ROOT}/Core.dll" ]]; then
     log_err "Expected Core.dll in $INSTALL_ROOT after extract — check release layout."
-    exit 1
+    return 1
   fi
 }
 
@@ -293,7 +325,15 @@ do_update() {
   local tmp_zip
   tmp_zip="$(mktemp /tmp/lampac-nextgen.XXXXXX.zip)"
   CLEANUP_PATHS+=("$tmp_zip")
-  download_and_unpack "$tmp_zip"
+  local preserve_dir
+  preserve_dir="$(mktemp -d /tmp/lampac-update-preserve.XXXXXX)"
+  stash_preserved_paths_for_update "$preserve_dir"
+  if ! download_and_unpack "$tmp_zip"; then
+    apply_stashed_preserved_paths "$preserve_dir"
+    log_err "Update failed."
+    exit 1
+  fi
+  apply_stashed_preserved_paths "$preserve_dir"
   set_install_ownership
   log_info "Starting $SERVICE_NAME..."
   systemctl start "$SERVICE_NAME"
