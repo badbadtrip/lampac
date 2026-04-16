@@ -69,7 +69,35 @@ namespace Spectre
 
                     lastreq = DateTime.Now;
 
-                    //Console.WriteLine(e.decryptLink.userdata);
+                    if (e.decryptLink.userdata != null)
+                    {
+                        string quality = e.decryptLink.userdata.ToString();
+                        if (quality != resolution)
+                        {
+                            resolution = quality;
+                            Console.WriteLine("resolution: " + resolution);
+
+                            string payload = JsonConvert.SerializeObject(new
+                            {
+                                type = "playback_start",
+                                current_time = current_time,
+                                resolution = resolution,
+                                track_id = "1",
+                                speed = 1,
+                                subtitle = -1,
+                                ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                            });
+
+                            await ws.SendAsync(
+                              new ArraySegment<byte>(Encoding.UTF8.GetBytes(payload)),
+                              WebSocketMessageType.Text,
+                              true,
+                              wscts.Token
+                            );
+
+                            await Task.Delay(1000);
+                        }
+                    }
 
                     string segId = Regex.Match(e.requestMessage.RequestUri.ToString(), "/seg-([0-9]+)-").Groups[1].Value;
                     int seg = int.TryParse(segId, out int s) ? s : 0;
@@ -383,16 +411,44 @@ namespace Spectre
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
-            string hls = await goMovie($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", id_file);
-            if (hls == null)
+            edge_hash = null;
+            resolution = null;
+            current_time = 0;
+            lastreq = DateTime.Now;
+
+            if (ws != null)
+            {
+                try
+                {
+                    if (wscts != null)
+                    {
+                        wscts.Cancel();
+                        wscts = null;
+                    }
+                }
+                catch { }
+
+                try
+                {
+                    _ = ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                    ws = null;
+                }
+                catch { }
+            }
+
+            var result = await goMovie($"{init.linkhost}/?token_movie={token_movie}&token={init.token}", id_file);
+            if (result.streams.data.Count == 0 || result.wsUri == null)
                 return OnError();
 
-            string target = HostStreamProxy(hls/*, userdata: "test userdata"*/);
+            WebSocket(result.wsUri);
+
+            var first = result.streams.Firts();
 
             if (play)
-                return Redirect(target);
+                return Redirect(first.link);
 
-            return ContentTo(VideoTpl.ToJson("play", target, "auto",
+            return ContentTo(VideoTpl.ToJson("play", first.link, "auto",
+                streamquality: result.streams,
                 vast: init.vast,
                 hls_manifest_timeout: (int)TimeSpan.FromSeconds(30).TotalMilliseconds
             ));
@@ -550,35 +606,12 @@ namespace Spectre
         #endregion
 
         #region goMovie
-        async Task<string> goMovie(string uri, long id_file)
+        async Task<(StreamQualityTpl streams, string wsUri)> goMovie(string uri, long id_file)
         {
             try
             {
-                edge_hash = null;
-                current_time = 0;
-                lastreq = DateTime.Now;
-
-                if (ws != null)
-                {
-                    try
-                    {
-                        if (wscts != null)
-                        {
-                            wscts.Cancel();
-                            wscts = null;
-                        }
-                    }
-                    catch { }
-
-                    try
-                    {
-                        _= ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                        ws = null;
-                    }
-                    catch { }
-                }
-
-                string hls = null, wsUri = null;
+                string wsUri = null;
+                var streamquality = new StreamQualityTpl();
 
                 using (var browser = new PlaywrightBrowser())
                 {
@@ -645,18 +678,22 @@ namespace Spectre
                                     if (string.IsNullOrWhiteSpace(link))
                                         continue;
 
-                                    resolution = q.Name;
+                                    if (string.IsNullOrEmpty(resolution))
+                                        resolution = q.Name;
 
-                                    browser.SetPageResult(link
+                                    link = link
                                         .Split(new[] { " or " }, StringSplitOptions.RemoveEmptyEntries)
-                                        .FirstOrDefault()?
-                                        .Trim());
+                                        .FirstOrDefault()
+                                        .Trim();
 
-                                    Console.WriteLine("\nReferer: " + requestReferer);
-                                    Console.WriteLine("Origin: " + requestOrigin);
-                                    Console.WriteLine("resolution: " + resolution);
-                                    break;
+                                    streamquality.Append(HostStreamProxy(link, userdata: q.Name), $"{q.Name}p");
                                 }
+
+                                browser.SetPageResult(null);
+
+                                Console.WriteLine("\nReferer: " + requestReferer);
+                                Console.WriteLine("Origin: " + requestOrigin);
+                                Console.WriteLine("resolution: " + resolution);
 
                                 await route.FulfillAsync(new RouteFulfillOptions
                                 {
@@ -687,15 +724,10 @@ namespace Spectre
 
                     PlaywrightBase.GotoAsync(page, "https://kinogo-go.tv/");
 
-                    hls = await browser.WaitPageResult(15);
+                    await browser.WaitPageResult(15);
                 }
 
-                if (string.IsNullOrEmpty(hls) || string.IsNullOrEmpty(wsUri))
-                    return default;
-
-                WebSocket(wsUri);
-
-                return hls;
+                return (streamquality, wsUri);
             }
             catch
             {
@@ -711,7 +743,7 @@ namespace Spectre
             {
                 ws = new ClientWebSocket();
                 ws.Options.SetRequestHeader("User-Agent", Http.UserAgent);
-                
+
                 wscts = new CancellationTokenSource();
 
                 await ws.ConnectAsync(new Uri(wsUri), wscts.Token);
