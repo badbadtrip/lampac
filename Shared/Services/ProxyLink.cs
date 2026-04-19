@@ -43,23 +43,23 @@ namespace Shared.Services
 
             if (plugin == "posterapi")
             {
-                return SerializePayload(hash, IsProxyImg, uri_clear, plugin, null, false, default, null);
+                return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, null);
             }
             else if (!forceMd5 && proxy == null && userdata == null && !uri_clear.Contains(" or "))
             {
                 if (verifyip && CoreInit.conf.serverproxy.verifyip)
                 {
-                    return SerializePayload(hash, IsProxyImg, uri_clear, plugin, reqip, true, DateTime.Today.AddDays(2), headers?.ToDictionary());
+                    return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, reqip, true, DateTime.Today.AddDays(2), headers?.ToDictionary());
                 }
                 else
                 {
-                    return SerializePayload(hash, IsProxyImg, uri_clear, plugin, null, false, default, headers?.ToDictionary());
+                    return SerializePayload(hash, IsProxyImg, uri_clear, uri, plugin, null, false, default, headers?.ToDictionary());
                 }
             }
             else
             {
                 hash.Append(CrypTo.md5(uri_clear + (verifyip && CoreInit.conf.serverproxy.verifyip ? reqip : string.Empty)));
-                WriteExtension(hash, uri_clear, IsProxyImg);
+                WriteExtension(hash, uri, IsProxyImg);
 
                 string link = hash.ToString();
 
@@ -82,7 +82,7 @@ namespace Shared.Services
             SkipValidation = true
         };
 
-        static string SerializePayload(StringBuilder sbhash, bool isProxyImg, string uri_clear, string plugin, string reqip, bool verifyip, DateTime e, Dictionary<string, string> h)
+        static string SerializePayload(StringBuilder sbhash, bool isProxyImg, string uri_clear, string uri, string plugin, string reqip, bool verifyip, DateTime e, Dictionary<string, string> h)
         {
             using (var utf8Buf = new BufferWriterPool<byte>())
             {
@@ -187,7 +187,7 @@ namespace Shared.Services
                             }
 
                             sbhash.Append(base64);
-                            WriteExtension(sbhash, uri_clear, isProxyImg);
+                            WriteExtension(sbhash, uri, isProxyImg);
 
                             return sbhash.ToString();
                         }

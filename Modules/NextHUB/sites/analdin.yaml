@@ -135,5 +135,5 @@ view:
   related: true
   viewsource: true
   regexMatch:
-    matches: ["url3", "url2", "url"]
-    pattern: "video_alt_{value}:[\t ]+'([^']+)'"
+    matches: ["video_alt_url", "video_url"]
+    pattern: "{value}:[\t ]+'([^']+)'"

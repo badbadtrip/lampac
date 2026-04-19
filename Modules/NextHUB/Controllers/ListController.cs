@@ -270,7 +270,7 @@ namespace NextHUB.Controllers
                         return null;
 
                     if (nd.format != null)
-                        return CSharpEval.BaseExecute<string>($"return $\"{nd.format}\";", new NxtNodeValue(value, host));
+                        return CSharpEval.Execute<string>($"return $\"{nd.format}\";", new NxtNodeValue(value, host));
 
                     return value;
                 }
