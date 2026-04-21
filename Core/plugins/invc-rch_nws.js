@@ -57,26 +57,17 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       player: Lampa.Storage.field('player')
     });
 
-    if (window.rch_nws[hostkey].rchRegistry) {
-      var isActive = client && client.socket && client.socket.readyState === WebSocket.OPEN;
-
-      if (!isActive && client && client._shouldReconnect) {
-        if (typeof client.reconnect === 'function') {
-          client.reconnect(function() {
-            if (startConnection) startConnection();
-          });
-        } else if (typeof client.connect === 'function') {
-          client.connect();
-        }
-      } else if (startConnection) startConnection();
-
+    if (window.rch_nws[hostkey].rchRegistry)
       return;
-    }
 
     window.rch_nws[hostkey].rchRegistry = true;
 
+    var handled = false;
     client.on('RchRegistry', function (clientIp, connectionId, rchtype) {
-      if (startConnection) startConnection();
+      if (startConnection && !handled) {
+	    handled = true;
+	    startConnection();
+      }
     });
 
     client.on("RchClient", function(rchId, url, data, headers, returnHeaders) {

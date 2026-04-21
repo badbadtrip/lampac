@@ -59,11 +59,8 @@
 
   function waitEvent() {
     if (!window.nwsClient) window.nwsClient = {};
-    if (window.nwsClient[hostkey] && window.nwsClient[hostkey].socket)
-      window.nwsClient[hostkey].socket.close();
     window.nwsClient[hostkey] = new NativeWsClient('{localhost}/nws', {
-      autoReconnect: true,
-      reconnectDelay: 2000
+      autoReconnect: true
     });
     nwsClient = window.nwsClient[hostkey];
     nwsClient.on('Connected', function(connectionId) {

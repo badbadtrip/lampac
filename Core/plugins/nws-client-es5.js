@@ -27,14 +27,13 @@
     this.queue = [];
     this.reconnectDelay = this.options.reconnectDelay;
     if (typeof this.reconnectDelay !== 'number' || this.reconnectDelay <= 0) {
-      this.reconnectDelay = 4000;
+      this.reconnectDelay = 2000;
     }
     this._shouldReconnect = !!this.options.autoReconnect;
     this._reconnectTimer = null;
-    this._reconnectStartedAt = null;
+    this._manualReconnect = false;
     this._pingTimer = null;
     this._blockedByVersion = false;
-    this._blockReason = null;
   }
 
   NativeWsClient.prototype.connect = function() {
@@ -70,6 +69,10 @@
     };
 
     self.socket.onclose = function(event) {
+      if (self._manualReconnect) {
+        self._manualReconnect = false;
+        return;
+      }
       self._stopPing();
       self.connectionId = null;
       self._checkVersionBlock(event);
@@ -183,35 +186,24 @@
     var self = this;
     var handled = false;
 
-    if (self._blockedByVersion) {
-      if (typeof done === 'function') {
-        done(self._blockReason);
-      }
-      return;
-    }
+    if (self._blockedByVersion)
+          return;
 
-    function finish() {
-      if (handled) {
-        return;
-      }
+    function onConnected() {
+      if (handled) return;
       handled = true;
-      self.off('Open', onOpen);
-      if (typeof done === 'function') {
-        done();
-      }
+      self.off('RchRegistry', onConnected);
+      if (typeof done === 'function') done();
     }
 
-    function onOpen() {
-      finish();
-    }
-
-    self.on('Open', onOpen);
+    self.on('RchRegistry', onConnected);
     self._clearReconnect();
     self._stopPing();
     self.connectionId = null;
 
     if (self.socket && (self.socket.readyState === WebSocket.OPEN || self.socket.readyState === WebSocket.CONNECTING)) {
       try {
+        self._manualReconnect = true;
         self.socket.close();
       } catch (e) {}
     }
@@ -238,22 +230,10 @@
       return;
     }
 
-    if (!self._reconnectStartedAt) {
-      self._reconnectStartedAt = Date.now();
-    }
-
-    var elapsed = Date.now() - self._reconnectStartedAt;
-    if (elapsed >= 300000) {
-      self._shouldReconnect = false;
-      return;
-    }
-
-    var delay = elapsed < 60000 ? 5000 : 60000;
-
     self._reconnectTimer = setTimeout(function() {
       self._reconnectTimer = null;
       self.connect();
-    }, delay);
+    }, self.reconnectDelay);
   };
 
   NativeWsClient.prototype._checkVersionBlock = function(event) {
@@ -263,13 +243,8 @@
     }
 
     this._blockedByVersion = true;
-    this._blockReason = reason;
     this._shouldReconnect = false;
     this._clearReconnect();
-
-    if (typeof this.options.onVersionBlocked === 'function') {
-      this.options.onVersionBlocked(reason);
-    }
   };
 
   NativeWsClient.prototype._clearReconnect = function() {
@@ -277,7 +252,6 @@
       clearTimeout(this._reconnectTimer);
       this._reconnectTimer = null;
     }
-    this._reconnectStartedAt = null;
   };
 
   NativeWsClient.prototype._startPing = function() {
