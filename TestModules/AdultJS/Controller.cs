@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Models.SISI.Base;
+using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace AdultJS
@@ -15,6 +15,8 @@ namespace AdultJS
         public ApiController() : base(ModInit.conf)
         {
             engine.Execute(ModInit.jsFile);
+            engine.SetValue("log", new Action<object>(Console.WriteLine));
+            engine.SetValue("EncryptQuery", new Func<string, string>(url => EncryptQuery(url)));
         }
 
         [HttpGet]
@@ -32,9 +34,9 @@ namespace AdultJS
                 if (html == null)
                     return e.Fail("html", refresh_proxy: true);
 
-                string json = engine.Invoke("Playlist", html, host, search, sort).AsString();
+                var channel = engine.Invoke("Playlist", html, host, search, sort)
+                    .Deserialize<Channel>();
 
-                var channel = JsonSerializer.Deserialize<Channel>(json);
                 if (channel?.list == null || channel.list.Count == 0)
                     return e.Fail("playlists");
 
@@ -50,20 +52,24 @@ namespace AdultJS
 
         [HttpGet]
         [Route("porngram/video")]
-        async public Task<ActionResult> Video(string href)
+        async public Task<ActionResult> Video(string uri, string secret_uri)
         {
+            Console.WriteLine($"secret_uri: {DecryptQuery(secret_uri)}");
+
             if (await IsRequestBlocked(rch: false))
                 return badInitMsg;
 
         rhubFallback:
-            var cache = await InvokeCacheResult($"PornGram:{href}", 10, jsonContext.DictionaryStringString, async e =>
+            var cache = await InvokeCacheResult($"PornGram:{uri}", 10, jsonContext.DictionaryStringString, async e =>
             {
-                string html = await httpHydra.Get(href);
+                string html = await httpHydra.Get(uri);
                 if (html == null)
                     return e.Fail("html", refresh_proxy: true);
 
-                string json = engine.Invoke("Video", html).AsString();
-                return e.Success(JsonSerializer.Deserialize<Dictionary<string, string>>(json));
+                var stream_links = engine.Invoke("Video", html)
+                    .Deserialize<Dictionary<string, string>>();
+
+                return e.Success(stream_links);
             });
 
             if (IsRhubFallback(cache))

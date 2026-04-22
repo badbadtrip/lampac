@@ -25,11 +25,14 @@ function Playlist(html, host, search, sort) {
     };
 
     // html parse ...
+    log('console.log ...')
+
+    var uri = "https://www.elecard.com/ru/videos";
 
     for (let i = 0; i < 24; i++) {
         channel.list.push({
             name: "Tomsk Theater Square",
-            video: host + "/porngram/video?href=" + encodeURIComponent("https://www.elecard.com/ru/videos"),
+            video: `${host}/porngram/video?uri=${encodeURIComponent(uri)}&secret_uri=${EncryptQuery(uri)}`,
             picture: "https://www.elecard.com/storage/thumbs/1_1280x_FFFFFF/images/Video%20Previews/TheaterSquare_640x360.jpg",
             time: "9:15",
             quality: "4K",
