@@ -384,10 +384,10 @@ RUNTIME_ID=linux-arm64 ./build.sh
   "accsdb": {
     "enable": true,
     "accounts": "user1:2026-12-31,user2:2027-06-01",
-    // или подробный формат:
+    // или подробный формат (поля как в модели AccsUser / users.json):
     "users": [
-      { "login": "user1", "expired": "2026-12-31" },
-      { "login": "user2", "expired": "2027-06-01" }
+      { "id": "user1", "expires": "2026-12-31" },
+      { "id": "user2", "expires": "2027-06-01" }
     ]
   }
 }
