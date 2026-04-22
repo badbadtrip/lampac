@@ -100,6 +100,8 @@ namespace PizdatoeHD
                                 if (page == null)
                                     return e.Fail("page");
 
+                                await AdsBlockRouteAsync(page);
+
                                 var result = await page.GotoAsync(search_uri, new PageGotoOptions()
                                 {
                                     WaitUntil = WaitUntilState.DOMContentLoaded,
@@ -177,7 +179,7 @@ namespace PizdatoeHD
                             if (await GotoLinkAsync(page, href))
                                 html = await page.ContentAsync();
                         }
-
+                        
                         if (html == null || !html.Contains("b-sidecover"))
                         {
                             if (page == null)
@@ -185,6 +187,8 @@ namespace PizdatoeHD
                                 page = await browser.NewPageAsync(init.plugin, init.headers, proxy: proxy_data, imitationHuman: true).ConfigureAwait(false);
                                 if (page == null)
                                     return e.Fail("page");
+
+                                await AdsBlockRouteAsync(page);
                             }
 
                             var result = await page.GotoAsync($"{init.host}/{href}", new PageGotoOptions()
@@ -243,11 +247,13 @@ namespace PizdatoeHD
                         if (page == null)
                             return result.Fail("page");
 
+                        await AdsBlockRouteAsync(page);
+
                         if (!string.IsNullOrEmpty(init.cookie))
                         {
+                            var cookies = new List<BrowserCookie>();
                             var excookie = DateTimeOffset.UtcNow.AddYears(1).ToUnixTimeSeconds();
 
-                            var cookies = new List<BrowserCookie>();
                             foreach (string line in init.cookie.Split(";"))
                             {
                                 if (line.Contains("dle_user_id") || line.Contains("dle_password"))
@@ -365,6 +371,25 @@ namespace PizdatoeHD
             {
                 return false;
             }
+        }
+        #endregion
+
+        #region AdsBlockRouteAsync
+        async public Task AdsBlockRouteAsync(IPage page)
+        {
+            const string adspattern = "(vk.com|ad2the.net|schulist.link|clarity.ms|frane[a-z]ki.net|cdn.jsdelivr.net/npm/yandex-metrica-watch/tag.js)";
+
+            await page.RouteAsync("**/*", async route =>
+            {
+                try
+                {
+                    if (Regex.IsMatch(route.Request.Url, adspattern, RegexOptions.IgnoreCase))
+                        await route.AbortAsync();
+                    else
+                        await route.ContinueAsync();
+                }
+                catch { }
+            });
         }
         #endregion
     }
