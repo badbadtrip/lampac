@@ -131,7 +131,7 @@ namespace LampaWeb.Controllers
             #endregion
 
             if (CoreInit.conf.accsdb.enable && requestInfo.user == null)
-			{
+            {
                 string msg = CoreInit.conf.accsdb.denyMesage
                     .Replace("{account_email}", requestInfo.user_uid)
                     .Replace("{user_uid}", requestInfo.user_uid)
