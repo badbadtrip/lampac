@@ -1,8 +1,5 @@
-#https://github.com/immisterio/Lampac/tree/main/SISI/Controllers/NextHUB
-
-
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/NxtSettings.cs
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/Base/BaseSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/NxtSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/Base/BaseSettings.cs
 enable: true
 enabled: false
 displayindex: 110
@@ -23,13 +20,13 @@ client_type: null                 // показывать для устройс�
 cache_time: 5                     // кеш 5 минут для list/search
 overridehost: null                // указать другой сервер - "http://ip:9118/pornotest"
 overridehosts: null               // указать несколько серверов - ["http://ip:9118/pornotest", "http://ip2:9118/pornotest"]
-overridepasswd: null              // https://t.me/c/2008902836/72299
+overridepasswd: null
 headers:                          // изменить user-agent, добавить данные авторизации и т.д - примеры в current.conf
   referer: "{host}/"
   x-requested-with: XMLHttpRequest
 headers_stream:                   // изменить header для streamproxy/geostreamproxy - примеры в current.conf
   referer: "{host}/"
-vast: null                        // https://t.me/c/2008902836/56772
+vast: null
 priorityBrowser: null             // null (chrome) | "http" | "firefox"
 globalnameproxy: null             // example.conf
 useproxy: true                    // example.conf
@@ -44,7 +41,7 @@ apn: null                         // example.conf
 qualitys_proxy: true              // если у пользователя нету прямого доступа к видео, он может запросить видео через сервер
 streamproxy_preview: true
 
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/RouteSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/RouteSettings.cs
 route:
   eval: |
     if (cat != null && sort != null) return $"{host}/{cat}/{sort.Replace("top", "toprated").Replace("most-popular", "popular")}/page/{page}/";
@@ -69,7 +66,7 @@ cookies:
     Name: "dle_password"
     Value: "asdhiosayuwafe"
 
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/MenuSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/MenuSettings.cs
 menu:
   route:
     sort: "{host}/{sort}/week/{page}/"
@@ -96,7 +93,7 @@ menu:
         Brazzers: brazzers
         Teamskeet: teamskeet
 
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/ListSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/ListSettings.cs
 list:
   firstpage: null       // начальная страница, page 1 | "" - http://porno.host
   uri: "last/{page}"
@@ -106,7 +103,7 @@ list:
   contentParse: null    // секция из contentParse если нужно переопределить получение данных
   routeEval: null       // замена запроса, смотрите beeg.yaml
 
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/ListSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/ListSettings.cs
 search:
   uri: "search/{search}/{page}"
   viewsource: true
@@ -114,7 +111,7 @@ search:
   contentParse: null
   routeEval: null
 
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/ListSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/ListSettings.cs
 model:
   uri: "{host}/{model}/{page}"
   format: '{host}/{model.Split("=")[1]}/{page}'
@@ -122,9 +119,9 @@ model:
 
 // https://html-agility-pack.net/documentation
 // либо GTP по запросу C# HtmlAgilityPack как получить содержимое элемента * в html *
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/ContentParseSettings.cs
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/SingleNodeSettings.cs
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/ModelParse.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/ContentParseSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/SingleNodeSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/ModelParse.cs
 contentParse:                                       // глобальная секция для list/search c "contentParse": null
   nodes: "//li[contains(@class, ' trailer')]"       // элемент видео row  | <li> который содержит в class имя trailer | <li data-view-component="true" class="twq trailer">row</li>
   name:                                             // title видео
@@ -152,9 +149,9 @@ contentParse:                                       // глобальная се
       attribute: href
   eval: null                                        // evaluate.parse.cs
 
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/ViewSettings.cs
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/SingleNodeSettings.cs
-#https://github.com/immisterio/Lampac/blob/main/Shared/Models/SISI/NextHUB/RegexMatchSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/ViewSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/SingleNodeSettings.cs
+#https://github.com/lampac-nextgen/lampac/blob/main/Shared/Models/NextHUB/RegexMatchSettings.cs
 view:
   viewsource: true
   addInitScript: localStorage.setItem('pljsquality', '720p');  // выполнить JS до начала загрузки страницы
