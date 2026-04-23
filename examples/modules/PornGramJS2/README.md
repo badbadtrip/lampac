@@ -27,6 +27,18 @@ const decrypted = decryptQuery('ogjwrtg14e0p9DSsOdcsPYKq0ri1gJhAL++QkliYtXIJEfQA
 log(decrypted);
 ```
 
+### `cacheGet(key)`
+
+```javascript
+const html = cacheGet(`${search}:${model}:${sort}:${cat}:${pg}`);
+log(html);
+```
+
+### `cacheSet(key, value, ttl)`
+
+```javascript
+cacheSet(`${search}:${model}:${sort}:${cat}:${pg}`, html, 20);
+```
 
 ### `streamProxy(url, headers)`
 

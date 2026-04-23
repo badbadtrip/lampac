@@ -968,6 +968,9 @@ namespace Shared
         #region ContentTo
         public ActionResult ContentTo(string html)
         {
+            if (string.IsNullOrEmpty(html))
+                return StatusCode(503);
+
             return Content(html, html.StartsWith("{") || html.StartsWith("[") ? "application/json; charset=utf-8" : "text/html; charset=utf-8");
         }
         #endregion
@@ -1027,7 +1030,33 @@ namespace Shared
             js.Execute(jsFile);
 
             js.SetValue("log", new Action<object>(Console.WriteLine));
+
+            js.SetValue("host", host);
             js.SetValue("encryptQuery", new Func<string, string>(url => EncryptQuery(url)));
+            js.SetValue("decryptQuery", new Func<string, string>(url => DecryptQuery(url)));
+
+            js.SetValue("cacheGet", new Func<string, string>(key =>
+            {
+                hybridCache.TryGetValue($"{init?.plugin}:{key}", out string value);
+                return value;
+            }));
+
+            js.SetValue("cacheSet", new Action<string, string, int>((key, value, time) =>
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return;
+
+                hybridCache.Set($"{init?.plugin}:{key}", value, TimeSpan.FromMinutes(time));
+            }));
+
+            js.SetValue("req", new
+            {
+                method = Request.Method,
+                path = Request.Path.ToString(),
+                headers = Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToString()),
+                query = Request.Query.ToDictionary(x => x.Key, x => x.Value.ToString()),
+                ip = requestInfo.IP
+            });
 
             if (init != null)
             {
