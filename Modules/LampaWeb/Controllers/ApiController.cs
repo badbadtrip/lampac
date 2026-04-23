@@ -131,7 +131,14 @@ namespace LampaWeb.Controllers
             #endregion
 
             if (CoreInit.conf.accsdb.enable && requestInfo.user == null)
-                return ContentTo("{\"accsdb\": true}");
+			{
+                string msg = CoreInit.conf.accsdb.denyMesage
+                    .Replace("{account_email}", requestInfo.user_uid)
+                    .Replace("{user_uid}", requestInfo.user_uid)
+                    .Replace("{host}", HttpContext.Request.Host.Value);
+
+                return Json(new { accsdb = true, msg });
+            }
 
             return ContentTo("{\"accsdb\": false, \"success\": true}");
         }
