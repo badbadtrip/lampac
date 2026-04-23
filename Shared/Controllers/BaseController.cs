@@ -11,6 +11,7 @@ using Shared.Models;
 using Shared.Models.AppConf;
 using Shared.Models.Events;
 using Shared.Models.SISI.OnResult;
+using Shared.Models.Templates;
 using Shared.Services;
 using Shared.Services.Kit;
 using System.Net;
@@ -1077,6 +1078,16 @@ namespace Shared
 
             js.SetValue("httpPost", new Func<string, string, Dictionary<string, string>, Dictionary<string, string>, Task<string>>(
                 (url, data, addheaders, newheaders) => httpHydra.Post(url, data, HeadersModel.Init(addheaders), HeadersModel.Init(newheaders))));
+
+            js.SetValue("EpisodeTpl", typeof(EpisodeTpl));
+            js.SetValue("MovieTpl", typeof(MovieTpl));
+            js.SetValue("SeasonTpl", typeof(SeasonTpl));
+            js.SetValue("SegmentTpl", typeof(SegmentTpl));
+            js.SetValue("SimilarTpl", typeof(SimilarTpl));
+            js.SetValue("StreamQualityTpl", typeof(StreamQualityTpl));
+            js.SetValue("SubtitleTpl", typeof(SubtitleTpl));
+            js.SetValue("VideoTpl", typeof(VideoTpl));
+            js.SetValue("VoiceTpl", typeof(VoiceTpl));
 
             return js;
         }
