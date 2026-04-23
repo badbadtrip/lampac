@@ -332,6 +332,13 @@ namespace Core
                         }
                         else
                         {
+                            string folderName = Path.GetFileName(folderMod);
+                            if (skipCompilationFolders.Contains(folderName))
+                            {
+                                Console.WriteLine($"skip compilation {modfolder}: {folderName}");
+                                continue;
+                            }
+
                             foreach (string recurseMod in Directory.GetDirectories(folderMod))
                             {
                                 string manifest = Path.Combine(recurseMod, "manifest.json");
