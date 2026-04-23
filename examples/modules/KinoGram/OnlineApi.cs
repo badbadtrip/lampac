@@ -5,7 +5,7 @@ using Shared.Models.Module.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Lamson
+namespace KinoGram
 {
     public class OnlineApi : IModuleOnline, IModuleOnlineAsync, IModuleOnlineSpider, IModuleOnlineSpiderAsync
     {
@@ -13,7 +13,7 @@ namespace Lamson
         {
             return new List<ModuleOnlineItem>()
             {
-                new(ModInit.KinoGram)
+                new(ModInit.conf)
             };
         }
 
@@ -34,7 +34,7 @@ namespace Lamson
             }
 
             if (!args.isanime)
-                send(ModInit.KinoGram, "kinogram");
+                send(ModInit.conf, "kinogram");
 
             return online;
         }

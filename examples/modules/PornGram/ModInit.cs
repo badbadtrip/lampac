@@ -6,13 +6,12 @@ using Shared.Models.Module.Interfaces;
 using Shared.Models.SISI.Base;
 using Shared.Services;
 using System.Collections.Generic;
-using System.IO;
+using System.Threading.Tasks;
 
-namespace AdultJS
+namespace PornGram
 {
-    public class ModInit : IModuleLoaded, IModuleSisi
+    public class ModInit : IModuleLoaded, IModuleSisi, IModuleSisiAsync
     {
-        public static string jsFile;
         public static SisiSettings conf;
 
         public List<SisiModuleItem> Invoke(HttpContext httpContext, RequestModel requestInfo, string host, SisiEventsModel args)
@@ -23,11 +22,13 @@ namespace AdultJS
             };
         }
 
+        public Task<List<SisiModuleItem>> InvokeAsync(HttpContext httpContext, RequestModel requestInfo, string host, SisiEventsModel args)
+        {
+            return Task.FromResult(default(List<SisiModuleItem>));
+        }
+
         public void Loaded(InitspaceModel baseconf)
         {
-            string jsPath = Path.Combine(baseconf.path, "service.js");
-            jsFile = File.ReadAllText(jsPath);
-
             updateConf();
             EventListener.UpdateInitFile += updateConf;
         }

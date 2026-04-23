@@ -3,15 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Web;
 using System.Linq;
-using Lamson.Models.KinoGram;
 using Shared;
 using Shared.Models.Templates;
 
-namespace Lamson.Controllers
+namespace KinoGram
 {
-    public class KinoGram : BaseOnlineController
+    public class KinoGramController : BaseOnlineController
     {
-        public KinoGram() : base(ModInit.KinoGram) { }
+        public KinoGramController() : base(ModInit.conf) { }
 
         [HttpGet]
         [Route("lite/kinogram")]
@@ -94,7 +93,6 @@ namespace Lamson.Controllers
         }
 
 
-        #region search
         async Task<Result> search(string imdb_id, long kinopoisk_id, int serial)
         {
             string memKey = $"KinoGram:view:{kinopoisk_id}:{imdb_id}";
@@ -219,6 +217,5 @@ namespace Lamson.Controllers
 
             return res;
         }
-        #endregion
     }
 }

@@ -1,16 +1,3 @@
-# Jint runtime bridge for .NET / .NET Core
-
-Минимальная обвязка над `Jint`, которая поднимает JS runtime и пробрасывает в JavaScript C#-функции:
-
-- `log(object)`
-- `encryptQuery(url)`
-- `streamProxy(url, headers)`
-- `imgProxy(url, height)`
-- `httpGet(url, addHeaders, newHeaders)`
-- `httpPost(url, data, addHeaders, newHeaders)`
-
----
-
 ## Доступные функции в JavaScript
 
 ### `log(value)`

@@ -6,7 +6,7 @@ using Shared.Models.SISI.Base;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace AdultJS
+namespace PornGramJS
 {
     public class ApiController : BaseSisiController
     {
