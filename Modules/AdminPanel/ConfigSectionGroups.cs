@@ -7,7 +7,7 @@ namespace AdminPanel;
 
 public static class ConfigSectionGroups
 {
-    public sealed record GroupSpec(string Id, string Title, string? Hint, string[] Keys);
+    public sealed record GroupSpec(string Id, string Title, string Hint, string[] Keys);
 
     public static readonly GroupSpec[] Catalog =
     {
@@ -104,4 +104,4 @@ public static class ConfigSectionGroups
         StringComparer.Ordinal);
 }
 
-public sealed record GroupDto(string Id, string Title, string? Hint, string[] Keys);
+public sealed record GroupDto(string Id, string Title, string Hint, string[] Keys);

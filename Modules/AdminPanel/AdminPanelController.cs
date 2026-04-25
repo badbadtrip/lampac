@@ -241,7 +241,7 @@ public class AdminPanelController : BaseController
 
     static bool IsReplaceTargetBusy(IOException ex)
     {
-        for (Exception? e = ex; e != null; e = e.InnerException)
+        for (Exception e = ex; e != null; e = e.InnerException)
         {
             if (e.Message != null && e.Message.Contains("busy", StringComparison.OrdinalIgnoreCase))
                 return true;
@@ -260,7 +260,7 @@ public class AdminPanelController : BaseController
         };
     }
 
-    static ContentResult AdminJsonError(int status, string error, string? detail = null)
+    static ContentResult AdminJsonError(int status, string error, string detail = null)
     {
         var o = new JObject { ["error"] = error };
         if (!string.IsNullOrEmpty(detail))
