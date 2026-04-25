@@ -310,7 +310,7 @@ build_rsync_excludes() {
     "database/"
 
     # Пользовательские .js в корне wwwroot/ (темы, кнопки и т.д.)
-    "wwwroot/*.js"
+    "wwwroot/"
 
     # Старая папка lampa-main (не входит в новый релиз, но может быть нужна)
     "wwwroot/lampa-main/"
