@@ -1,11 +1,13 @@
 {
   "enable": true,
   "dynamic": true,
-  "syntaxPaths": [ "../SyncEvents/NwsEvents.cs" ],
+  "syntaxPaths": [
+    "../SyncEvents/NwsEvents.cs"
+  ],
   "tree": [
     "Controllers",
     "Models",
-    "SqlContext.cs",
-    "ModInit.cs"
+    "ModInit.cs",
+    "SqlContext.cs"
   ]
 }

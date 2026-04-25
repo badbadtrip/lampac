@@ -1,4 +1,13 @@
 {
   "enable": true,
-  "references": [ "references/" ]
+  "references": [
+    "references/"
+  ],
+  "tree": [
+    "Services",
+    "Controller.cs",
+    "Model.cs",
+    "ModInit.cs",
+    "ModuleConf.cs"
+  ]
 }

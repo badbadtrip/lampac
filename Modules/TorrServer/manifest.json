@@ -1,3 +1,8 @@
 {
-  "enable": true
+  "enable": true,
+  "tree": [
+    "Controller.cs",
+    "ModInit.cs",
+    "ModuleConf.cs"
+  ]
 }

@@ -1,4 +1,14 @@
 {
   "enable": true,
-  "references": [ "references/" ]
+  "references": [
+    "references/"
+  ],
+  "tree": [
+    "Controllers",
+    "Engine",
+    "Models",
+    "ApiController.cs",
+    "GlobalUsings.cs",
+    "ModInit.cs"
+  ]
 }
