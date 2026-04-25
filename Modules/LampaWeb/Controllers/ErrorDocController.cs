@@ -3,20 +3,20 @@ using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Services.Utilities;
 
-namespace LampaWeb.Controllers
-{
-    public class ErrorDocController : BaseController
-    {
-        [HttpGet]
-        [AllowAnonymous]
-        [Route("/e/acb")]
-        public ActionResult Accsdb()
-        {
-            string shared_passwd = UnicTo.Code(8).ToLowerInvariant();
-            string pw1 = UnicTo.Code(6).ToLowerInvariant();
-            string pw2 = UnicTo.Code(8).ToLowerInvariant();
+namespace LampaWeb;
 
-            return ContentTo($@"<!DOCTYPE html>
+public class ErrorDocController : BaseController
+{
+    [HttpGet]
+    [AllowAnonymous]
+    [Route("/e/acb")]
+    public ActionResult Accsdb()
+    {
+        string shared_passwd = UnicTo.Code(8).ToLowerInvariant();
+        string pw1 = UnicTo.Code(6).ToLowerInvariant();
+        string pw2 = UnicTo.Code(8).ToLowerInvariant();
+
+        return ContentTo($@"<!DOCTYPE html>
 <html lang='ru'>
 <head>
     <meta charset='UTF-8'>
@@ -104,6 +104,5 @@ namespace LampaWeb.Controllers
     </div>
 </body>
 </html>");
-        }
     }
 }

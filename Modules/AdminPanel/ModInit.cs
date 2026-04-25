@@ -1,19 +1,18 @@
 using Shared.Models.Module;
 using Shared.Models.Module.Interfaces;
 
-namespace AdminPanel
+namespace AdminPanel;
+
+public class ModInit : IModuleLoaded
 {
-    public class ModInit : IModuleLoaded
+    public static string modpath;
+
+    public void Loaded(InitspaceModel baseconf)
     {
-        public static string modpath;
+        modpath = baseconf.path;
+    }
 
-        public void Loaded(InitspaceModel baseconf)
-        {
-            modpath = baseconf.path;
-        }
-
-        public void Dispose()
-        {
-        }
+    public void Dispose()
+    {
     }
 }

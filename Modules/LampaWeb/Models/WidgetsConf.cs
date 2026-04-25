@@ -1,7 +1,6 @@
-﻿namespace LampaWeb.Models
+﻿namespace LampaWeb;
+
+public class WidgetsConf
 {
-    public class WidgetsConf
-    {
-        public bool samsung { get; set; } = true;
-    }
+    public bool samsung { get; set; } = true;
 }

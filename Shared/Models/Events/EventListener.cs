@@ -49,7 +49,7 @@ public class EventListener
 
     public static Func<EventStreamQuality, (bool? next, string link)> StreamQuality;
 
-    public static Func<EventStreamQualityFirts, StreamQualityDto?> StreamQualityFirts;
+    public static Func<EventStreamQualityFirts, StreamQualityDto> StreamQualityFirts;
 
     public static Func<EventOnlineApiQuality, string> OnlineApiQuality;
 

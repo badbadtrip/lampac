@@ -38,7 +38,7 @@
   window.lampa_settings.disable_features.blacklist = false;     // Черный список плагинов
   window.lampa_settings.disable_features.persons = false;       // Подписка на актеров
   window.lampa_settings.disable_features.trailers = false;      // Трейлеры
-  window.lampa_settings.disable_features.lgbt = true;           // Отключает блокировку ЛГБТ контента
+  window.lampa_settings.disable_features.lgbt = true;           // Разрешить ЛГБТ контент
 
   window.lampa_settings.developer = window.lampa_settings.developer || {};
   
