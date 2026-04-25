@@ -1,3 +1,9 @@
 {
-  "enable": true
+  "enable": true,
+  "tree": [
+    "SQL",
+    "ModInit.cs",
+    "ModuleConf.cs",
+    "OnlineApi.cs"
+  ]
 }

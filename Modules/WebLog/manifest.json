@@ -1,4 +1,9 @@
 {
   "enable": true,
-  "dynamic": true
+  "dynamic": true,
+  "tree": [
+    "ApiController.cs",
+    "LogEvents.cs",
+    "ModInit.cs"
+  ]
 }

@@ -1,3 +1,6 @@
 {
-  "enable": true
+  "enable": true,
+  "tree": [
+    "ModInit.cs"
+  ]
 }

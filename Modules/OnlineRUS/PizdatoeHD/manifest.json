@@ -1,11 +1,11 @@
 {
   "enable": true,
   "dynamic": true,
-  "version": "16.04.2026",
   "tree": [
     "Models",
     "Services",
     "Controller.cs",
     "ModInit.cs"
-  ]
+  ],
+  "version": "16.04.2026"
 }
