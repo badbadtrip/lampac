@@ -166,7 +166,7 @@ public class VibixController : BaseOnlineController
             ("sec-fetch-site", "same-site")
         );
 
-        JObject root = await InvokeCache(ipkey($"vibix:{uri}"), 20, async 
+        JObject root = await InvokeCache(ipkey($"vibix:{uri}"), 20, async
             () => await httpHydra.Get<JObject>(uri, addheaders: headers)
         );
 

@@ -180,7 +180,7 @@ public static class Service
             _ = Task.Factory.StartNew(async () =>
             {
                 while (!watch.wscts.Token.IsCancellationRequested && watch.ws.State == WebSocketState.Open)
-                {   
+                {
                     var result = await watch.ws.ReceiveAsync(new ArraySegment<byte>(receiveBuffer), watch.wscts.Token);
                     if (watch.wscts.Token.IsCancellationRequested)
                         return;
