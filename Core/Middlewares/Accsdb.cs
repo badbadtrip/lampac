@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Shared;
 using Shared.Attributes;
 using Shared.Models.Base;
+using Shared.Models.Events;
 using Shared.Services.Utilities;
 using System;
 using System.Collections.Concurrent;
@@ -130,6 +131,14 @@ public class Accsdb
                     return Task.CompletedTask;
                 }
 
+                if (EventListener.Accsdb != null)
+                {
+                    var ev = new EventAccsdb(httpContext, requestInfo);
+
+                    foreach (Action<EventAccsdb> handler in EventListener.Accsdb.GetInvocationList())
+                        handler(ev);
+                }
+
                 #region msg
                 string msg = limitip ? $"Превышено допустимое количество ip/запросов на аккаунт."
                     : string.IsNullOrEmpty(requestInfo.user_uid) ? accsdb.authMesage
@@ -167,6 +176,9 @@ public class Accsdb
                     }
                 }
                 #endregion
+
+                if (requestInfo.IsAnonymousRequest)
+                    return _next(httpContext);
 
                 return httpContext.Response.WriteAsJsonAsync(new { accsdb = true, msg, denymsg, user });
             }

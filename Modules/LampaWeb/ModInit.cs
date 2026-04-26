@@ -1,9 +1,10 @@
 ﻿using Shared;
-using Shared.Services;
 using Shared.Models.AppConf;
 using Shared.Models.Events;
 using Shared.Models.Module;
 using Shared.Models.Module.Interfaces;
+using Shared.Services;
+using System;
 using System.Collections.Generic;
 
 namespace LampaWeb;
@@ -20,6 +21,7 @@ public class ModInit : IModuleLoaded
 
         updateConf();
         EventListener.UpdateInitFile += updateConf;
+        EventListener.Accsdb += accsdbEvent;
 
         foreach (var m in conf.limit_map)
             CoreInit.conf.WAF.limit_map.Insert(0, m);
@@ -31,6 +33,7 @@ public class ModInit : IModuleLoaded
     {
         LampaCron.Stop();
         EventListener.UpdateInitFile -= updateConf;
+        EventListener.Accsdb -= accsdbEvent;
     }
 
     void updateConf()
@@ -48,5 +51,18 @@ public class ModInit : IModuleLoaded
                 new("^/(extensions|testaccsdb|msx/)", new WafLimitMap { limit = 10, second = 1 })
             }
         });
+    }
+
+    void accsdbEvent(EventAccsdb e)
+    {
+        var accsdb = CoreInit.conf.accsdb;
+
+        if (accsdb.enable && 
+            accsdb.shared_passwd != null &&
+            e.httpContext.Request.Path.Value.Equals("/testaccsdb", StringComparison.OrdinalIgnoreCase) &&
+            e.requestInfo.user_uid == accsdb.shared_passwd)
+        {
+            e.requestInfo.IsAnonymousRequest = true;
+        }
     }
 }

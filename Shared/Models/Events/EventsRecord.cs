@@ -12,6 +12,8 @@ namespace Shared.Models.Events;
 
 public record EventLoadKit(BaseSettings defaultinit, BaseSettings init, JObject userconf, RequestModel requestInfo);
 
+public record EventAccsdb(HttpContext httpContext, RequestModel requestInfo);
+
 public record EventMiddleware(bool first, HttpContext httpContext);
 
 public record EventBadInitialization(BaseSettings init, bool? rch, RequestModel requestInfo, string host, HttpRequest request, HttpContext httpContext);

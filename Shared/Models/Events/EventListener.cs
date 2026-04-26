@@ -9,6 +9,8 @@ public class EventListener
 
     public static Action<EventLoadKit> LoadKit;
 
+    public static Action<EventAccsdb> Accsdb;
+
     public static Action UpdateInitFile;
 
     public static Action UpdateCurrentConf;
