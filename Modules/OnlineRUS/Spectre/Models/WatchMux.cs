@@ -35,10 +35,13 @@ public class WatchMux : IDisposable
         try
         {
             wscts?.Cancel();
-            ws?.Dispose();
         }
         catch { }
 
-        ws = null;
+        try
+        {
+            _ = ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).ContinueWith(i => ws = null);
+        }
+        catch { }
     }
 }
