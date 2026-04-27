@@ -34,7 +34,7 @@ public class KinogoController : BaseOnlineController
             if (string.IsNullOrEmpty(title))
                 return OnError("search params");
 
-            reset_search:
+        reset_search:
             var search = await InvokeCacheResult<SearchModel>($"kinogo:search:{title}:{year}", TimeSpan.FromHours(4), async e =>
             {
                 string search = rch?.enable == true
@@ -68,7 +68,7 @@ public class KinogoController : BaseOnlineController
             return OnError("href");
 
         #region embed
-        reset_embed:
+    reset_embed:
 
         var cache = await InvokeCacheResult<List<PlaylistItem>>(ipkey(href), 20, async e =>
         {
@@ -332,7 +332,7 @@ public class KinogoController : BaseOnlineController
                         <html lang=""ru"">
                           <body>
                             <script>
-                              {FileCache.ReadAllText("data/cinemar_playerjs.js")}
+                              {ModInit.playerjs}
                               Cinemar({{""file"":""{fileEncode}""}})
                             </script>
                           </body>

@@ -7,12 +7,14 @@ using Shared.Models.Online.Settings;
 using Shared.PlaywrightCore;
 using Shared.Services;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Kinogo;
 
 public class ModInit : IModuleLoaded, IModuleOnline, IModuleOnlineSpider
 {
     public static OnlinesSettings conf;
+    public static string playerjs;
 
     public List<ModuleOnlineItem> Invoke(HttpContext httpContext, RequestModel requestInfo, string host, OnlineEventsModel args)
     {
@@ -38,6 +40,8 @@ public class ModInit : IModuleLoaded, IModuleOnline, IModuleOnlineSpider
 
     public void Loaded(InitspaceModel baseconf)
     {
+        playerjs = File.ReadAllText($"{baseconf.path}/playerjs.js");
+
         updateConf();
         EventListener.UpdateInitFile += updateConf;
         EventListener.OnlineApiQuality += onlineApiQuality;
