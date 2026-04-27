@@ -53,9 +53,9 @@ public class ApiController : BaseController
         if (select == "ip")
             return Content(ip ?? requestInfo.IP);
 
-        string country = requestInfo.Country;
-        if (ip != null)
-            country = GeoIP2.Country(ip);
+        string country = ip != null
+            ? GeoIP2.Country(ip)
+            : requestInfo.Country;
 
         if (select == "country")
             return Content(country);

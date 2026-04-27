@@ -69,7 +69,7 @@ public class WAF
         if (!disabled.country && waf.countryAllow != null)
         {
             // если мы не знаем страну или точно знаем, что она не в списке разрешенных
-            if (string.IsNullOrEmpty(requestInfo.Country) || !waf.countryAllow.Contains(requestInfo.Country))
+            if (requestInfo.Country == null || !waf.countryAllow.Contains(requestInfo.Country))
             {
                 httpContext.Response.StatusCode = 403;
                 return Task.CompletedTask;
@@ -79,7 +79,7 @@ public class WAF
         if (!disabled.country && waf.countryDeny != null)
         {
             // точно знаем страну и она есть в списке запрещенных
-            if (!string.IsNullOrEmpty(requestInfo.Country) && waf.countryDeny.Contains(requestInfo.Country))
+            if (requestInfo.Country != null && waf.countryDeny.Contains(requestInfo.Country))
             {
                 httpContext.Response.StatusCode = 403;
                 return Task.CompletedTask;

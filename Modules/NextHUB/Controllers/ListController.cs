@@ -401,7 +401,7 @@ public class ListController : BaseSisiController<NxtSettings>
                 if (eval != null)
                     pl = CSharpEval.Execute<PlaylistItem>(eval, new NxtChangePlaylis(init, plugin, host, html, nodes, pl, row), Root.playlistOptions);
 
-                if (pl.json == false && (init.streamproxy || (init.geostreamproxy != null && init.geostreamproxy.Contains(requestInfo.Country))))
+                if (pl.json == false && (init.streamproxy || (init.geostreamproxy != null && requestInfo.Country != null && init.geostreamproxy.Contains(requestInfo.Country))))
                     pl.video = $"{host}/proxy/{ProxyLink.Encrypt(pl.video, requestInfo.IP, HeadersModel.Init(init.headers_stream))}";
 
                 if (pl != null)

@@ -70,7 +70,7 @@ public class CubProxyController : BaseController
             if (domain.StartsWith("geo", StringComparison.OrdinalIgnoreCase))
             {
                 string country = requestInfo.Country;
-                if (string.IsNullOrEmpty(country))
+                if (country == null)
                 {
                     var ipify = await Http.Get<JObject>("https://api.ipify.org/?format=json");
                     if (ipify != null || !string.IsNullOrEmpty(ipify.Value<string>("ip")))
@@ -288,7 +288,7 @@ public class CubProxyController : BaseController
                     {
                         var headers = HeadersModel.Init();
 
-                        if (!string.IsNullOrEmpty(requestInfo.Country))
+                        if (requestInfo.Country != null)
                             headers.Add(new HeadersModel("cf-connecting-ip", requestInfo.IP));
 
                         if (path.Split(".")[0] == "tmdb")
@@ -400,7 +400,7 @@ public class CubProxyController : BaseController
         if (viewru)
             request.Headers["Cookie"] = "viewru=1";
 
-        if (!string.IsNullOrEmpty(requestInfo.Country))
+        if (requestInfo.Country != null)
             request.Headers["Cf-Connecting-Ip"] = requestInfo.IP;
 
         #region Headers

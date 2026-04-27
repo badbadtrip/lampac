@@ -452,8 +452,6 @@ public class PiTor : BaseOnlineController
         if (NoAccessGroup(init, out string error_msg))
             return Json(new { accsdb = true, error_msg });
 
-        string country = requestInfo.Country;
-
         int index = tsid != -1 ? tsid : 1;
         string magnet = $"magnet:?xt=urn:btih:{id}&" + Regex.Replace(HttpContext.Request.QueryString.Value.Remove(0, 1), "&(account_email|uid|token|nws_id|tsid)=[^&]+", "");
 
@@ -509,6 +507,7 @@ public class PiTor : BaseOnlineController
             string tskey = $"pidtor:ts2:{id}:{requestInfo.IP}";
             if (!hybridCache.TryGetValue(tskey, out PidTorAuthTS ts))
             {
+                string country = requestInfo.Country;
                 var tors = init.auth_torrs.Where(i => i.enable).ToList();
 
                 if (country != null)

@@ -4,41 +4,69 @@ namespace Shared.Services.Utilities;
 
 public class GeoIP2
 {
-    static DatabaseReader cityReader = null, asnReader = null;
-
-    static GeoIP2()
+    static readonly Lazy<DatabaseReader> cityReader = new Lazy<DatabaseReader>(() =>
     {
         if (File.Exists("data/GeoLite2-Country.mmdb"))
-            cityReader = new DatabaseReader("data/GeoLite2-Country.mmdb");
+            return new DatabaseReader("data/GeoLite2-Country.mmdb");
 
+        return null;
+    });
+
+    static readonly Lazy<DatabaseReader> asnReader = new Lazy<DatabaseReader>(() =>
+    {
         if (File.Exists("data/GeoLite2-ASN.mmdb"))
-            asnReader = new DatabaseReader("data/GeoLite2-ASN.mmdb");
-    }
+            return new DatabaseReader("data/GeoLite2-ASN.mmdb");
+
+        return null;
+    });
 
     /// <param name="IP">IP пользователя</param>
     /// <returns>Страна UA,RU,BY,KZ</returns>
     public static string Country(string IP)
     {
-        if (string.IsNullOrEmpty(IP) || cityReader == null)
+        if (string.IsNullOrWhiteSpace(IP))
+            return null;
+
+        if (IPNetwork.IsLocalIp(IP, forced: true))
             return null;
 
         try
         {
-            return cityReader.Country(IP).Country.IsoCode.ToUpper();
+            var reader = cityReader.Value;
+
+            if (reader == null)
+                return null;
+
+            string code = reader.Country(IP).Country.IsoCode;
+            if (string.IsNullOrEmpty(code))
+                return null;
+
+            return code.ToUpper();
         }
-        catch { return null; }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <param name="IP">IP пользователя</param>
     /// <returns>ASN (например: 13335)</returns>
     public static long ASN(string IP)
     {
-        if (string.IsNullOrEmpty(IP) || asnReader == null)
+        if (string.IsNullOrWhiteSpace(IP))
+            return -1;
+
+        if (IPNetwork.IsLocalIp(IP, forced: true))
             return -1;
 
         try
         {
-            return asnReader.Asn(IP).AutonomousSystemNumber ?? -1;
+            var reader = asnReader.Value;
+
+            if (reader == null)
+                return -1;
+
+            return reader.Asn(IP).AutonomousSystemNumber ?? -1;
         }
         catch
         {

@@ -2,9 +2,9 @@
 
 public static class IPNetwork
 {
-    public static bool IsLocalIp(ReadOnlySpan<char> ip)
+    public static bool IsLocalIp(ReadOnlySpan<char> ip, bool forced)
     {
-        if (ip.IsEmpty || CoreInit.conf.BaseModule.NotCheckLocalIp)
+        if (ip.IsEmpty || (!forced && CoreInit.conf.BaseModule.NotCheckLocalIp))
             return false;
 
         // Если ip приходит в формате IPv4-mapped IPv6 (::ffff:192.168.0.1)

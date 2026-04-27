@@ -367,7 +367,7 @@ public class BaseController : Controller
         if (!streamproxy && conf.geostreamproxy != null && conf.geostreamproxy.Length > 0)
         {
             string country = requestInfo.Country;
-            if (!string.IsNullOrEmpty(country) && country.Length == 2)
+            if (country != null && country.Length == 2)
             {
                 if (conf.geostreamproxy.Contains("ALL") || conf.geostreamproxy.Contains(country))
                     streamproxy = true;
