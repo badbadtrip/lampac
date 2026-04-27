@@ -207,6 +207,8 @@ public class CoreInit
         frontend = null // cloudflare|nginx
     };
 
+    public bool lowMemoryMode;
+
     public long freeDiskSpace = -1;
 
     public bool serilog = true;
