@@ -797,9 +797,9 @@ public class RezkaInvoke
         #endregion
 
         #region Максимально доступное
-        var qualities = new List<string> { "2160p", "1440p", "1080p", "720p", "480p" };
-        if (userprem)
-            qualities.InsertRange(2, new List<string> { "1080p Ultra" });
+        var qualities = init.premium
+            ? new List<string> { "2160p", "1440p", "1080p Ultra", "1080p", "720p", "480p" }
+            : new List<string> { "1080p", "720p", "480p" };
 
         foreach (string q in qualities)
         {
@@ -814,7 +814,7 @@ public class RezkaInvoke
                     link = getLink("2K") ?? getLink(q);
                     break;
                 case "1080p":
-                    link = userprem ? getLink(q) : (getLink(q) ?? getLink("1080p Ultra"));
+                    link = userprem ? (getLink(q) ?? getLink("1080p Ultra")) : getLink(q);
                     break;
                 default:
                     link = getLink(q);

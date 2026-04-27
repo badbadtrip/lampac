@@ -55,6 +55,6 @@ public class ModInit : IModuleLoaded, IModuleOnline
 
     string onlineApiQuality(EventOnlineApiQuality e)
     {
-        return e.balanser == "cdnvideohub" ? " ~ 2160p" : null;
+        return e.balanser == "cdnvideohub" ? " ~ 1080p" : null;
     }
 }

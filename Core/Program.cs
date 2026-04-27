@@ -15,12 +15,10 @@ using Shared.Services.Hybrid;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -46,26 +44,17 @@ public class Program
     {
         string refs = Path.Combine(AppContext.BaseDirectory, "runtimes", "references");
 
-        if (Directory.Exists(refs))
+        AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
         {
-            foreach (string dllPath in Directory.GetFiles(refs, "*.dll"))
+            foreach (string name in new string[] { $"ru/{assemblyName.Name}", assemblyName.Name })
             {
-                var loadedAssembly = Assembly.LoadFrom(dllPath);
-                AssemblyLocations.Add(loadedAssembly.Location);
+                string assemblyPath = Path.Combine(refs, name);
+                if (File.Exists(assemblyPath))
+                    return context.LoadFromAssemblyPath(assemblyPath);
             }
 
-            AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
-            {
-                foreach (string name in new string[] { $"ru/{assemblyName.Name}", assemblyName.Name })
-                {
-                    string assemblyPath = Path.Combine(refs, name);
-                    if (File.Exists(assemblyPath))
-                        return context.LoadFromAssemblyPath(assemblyPath);
-                }
-
-                return null;
-            };
-        }
+            return null;
+        };
 
         Run(args);
     }

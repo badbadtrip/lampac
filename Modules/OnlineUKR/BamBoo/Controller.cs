@@ -34,7 +34,7 @@ public class BamBooController : BaseOnlineController
             if (string.IsNullOrWhiteSpace(title ?? original_title))
                 return OnError();
 
-            searchFallback:
+        searchFallback:
 
             string query = (similar || clarification == 1) ? title : original_title;
 
@@ -48,6 +48,9 @@ public class BamBooController : BaseOnlineController
 
             return ContentTpl(search, () =>
             {
+                if (search.Value.similars == null)
+                    return default;
+
                 var stpl = new SimilarTpl(search.Value.similars.Count);
 
                 string enc_title = HttpUtility.UrlEncode(title);
@@ -62,7 +65,7 @@ public class BamBooController : BaseOnlineController
                 return stpl;
             });
         }
-    #endregion
+        #endregion
 
     rhubFallback:
 

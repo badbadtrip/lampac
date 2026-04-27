@@ -60,22 +60,43 @@ public class VibixController : BaseOnlineController
 
             foreach (var movie in cache.Value)
             {
-                var streams = new StreamQualityTpl();
+                var voices = new Dictionary<string, StreamQualityTpl>();
 
-                foreach (string q in new string[] { "1080", "720", "480" })
+                foreach (Match qualityMatch in Regex.Matches(movie.file, @"\[(?<q>480|720|1080)p\](?<items>.*?)(?=,\[(?:480|720|1080)p\]|$)", RegexOptions.Singleline))
                 {
-                    var g = new Regex($"{q}p?\\](\\{{[^\\}}]+\\}})?(?<file>https?://[^,\t\\[\\;\\{{ ]+)").Match(movie.file).Groups;
+                    string quality = qualityMatch.Groups["q"].Value + "p";
+                    string items = qualityMatch.Groups["items"].Value;
 
-                    if (!string.IsNullOrEmpty(g["file"].Value))
+                    foreach (Match voiceMatch in Regex.Matches(items, @"\{(?<voice>[^}]+)\}(?<file>https?://[^,\t\[\;{ ]+)", RegexOptions.Singleline))
                     {
-                        string uri = accsArgs($"{host}/lite/vibix/video.m3u8?id={EncryptQuery(g["file"].Value)}");
-                        streams.Append(uri, $"{q}p");
+                        string voice = voiceMatch.Groups["voice"].Value;
+                        string file = voiceMatch.Groups["file"].Value;
+
+                        if (!voices.TryGetValue(voice, out var streams))
+                        {
+                            streams = new StreamQualityTpl();
+                            voices[voice] = streams;
+                        }
+
+                        streams.Insert(accsArgs($"{host}/lite/vibix/video.m3u8?id={EncryptQuery(file)}"), quality);
                     }
                 }
 
-                var first = streams.Firts();
-                if (first != null)
-                    mtpl.Append(movie.title, first.link, streamquality: streams, vast: init.vast);
+                foreach (var v in voices)
+                {
+                    var streams = v.Value;
+                    var first = streams.Firts();
+
+                    if (first != null)
+                    {
+                        mtpl.Append(
+                            v.Key ?? movie.title,
+                            first.link,
+                            streamquality: streams,
+                            vast: init.vast
+                        );
+                    }
+                }
             }
 
             return ContentTpl(mtpl);
