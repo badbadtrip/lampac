@@ -66,9 +66,9 @@ public class KinoukrInvoke
                     return true;
 
                 return false;
-            });
+            }).ToList();
 
-            if (resultId != null && resultId.Count() > 0)
+            if (resultId.Count != 0)
                 return resultId.Select(i => i.Value).ToList();
         }
 

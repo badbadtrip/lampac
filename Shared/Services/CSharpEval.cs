@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyModel;
 using Shared.Models.Module;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -110,6 +111,7 @@ public static class CSharpEval
     public static List<PortableExecutableReference> appReferences;
     static readonly object lockCompilationObj = new();
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static (Assembly assembly, AssemblyLoadContext alc, string path) Compilation(RootModule mod)
     {
         lock (lockCompilationObj)

@@ -131,6 +131,9 @@ public static class Root
 
     static string changeFileId(string plugin, IMemoryCache memoryCache)
     {
+        if (CoreInit.conf.lowMemoryMode)
+            return string.Empty;
+
         string memKey = $"NextHUB:changeFileId:{plugin}:{CoreInit.conf.guid}";
         if (!memoryCache.TryGetValue(memKey, out string fileKeyId))
         {

@@ -18,7 +18,16 @@ public static class PoolInvk
 
 
     public static int bufferSize
-        => CoreInit.conf.pool.BufferSize > 0 ? CoreInit.conf.pool.BufferSize : 81920;
+    {
+        get
+        {
+            int size = CoreInit.conf.pool.BufferSize > 0 ? CoreInit.conf.pool.BufferSize : 81920;
+            if (CoreInit.conf.lowMemoryMode)
+                return Math.Min(size, 4096);
+
+            return size;
+        }
+    }
 
 
     static readonly int[] sizesRent =

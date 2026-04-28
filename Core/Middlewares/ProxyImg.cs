@@ -79,7 +79,7 @@ public class ProxyImg
         ReadOnlySpan<char> aespath = ExtractEncryptedPath(httpContext.Request.Path.Value);
 
         ProxyLinkModel decryptLink = null;
-        if (CoreInit.conf.serverproxy.verifyip)
+        if (CoreInit.conf.serverproxy.verifyip || CoreInit.conf.lowMemoryMode)
         {
             decryptLink = ProxyLink.Decrypt(aespath, requestInfo.IP);
         }
@@ -251,7 +251,7 @@ public class ProxyImg
 
                     if (width == 0 && height == 0)
                     {
-                    #region bypass
+                        #region bypass
                     bypass_reset:
 
                         var client = FriendlyHttp.MessageClient("proxyimg", Http.Handler(href, proxy));
@@ -551,13 +551,16 @@ public class ProxyImg
 
     private bool NetVipsImage(string href, Stream inArray, Stream outArray, int width, int height)
     {
-        if (_initNetVips == false && CoreInit.conf.serverproxy.image.NetVipsCache == false)
+        if (_initNetVips == false)
         {
-            _initNetVips = true;
-            NetVips.Cache.Max = 0;      // 0 операций в кэше
-            NetVips.Cache.MaxMem = 0;   // 0 байт памяти под кэш
-            NetVips.Cache.MaxFiles = 0; // 0 файлов в файловом кэше
-            NetVips.Cache.Trace = false;
+            if (CoreInit.conf.serverproxy.image.NetVipsCache == false || CoreInit.conf.lowMemoryMode)
+            {
+                _initNetVips = true;
+                NetVips.Cache.Max = 0;      // 0 операций в кэше
+                NetVips.Cache.MaxMem = 0;   // 0 байт памяти под кэш
+                NetVips.Cache.MaxFiles = 0; // 0 файлов в файловом кэше
+                NetVips.Cache.Trace = false;
+            }
         }
 
         try

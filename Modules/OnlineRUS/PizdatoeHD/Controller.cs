@@ -60,15 +60,15 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
                 CacheResult<SearchModel> search;
 
                 string _kp = kinopoisk_id.ToString();
-                var dbEntry = ModInit.database.Where(e => (imdb_id != null && e.Value.imdb == imdb_id) || e.Value.kp == _kp);
-                if (dbEntry.Any())
+                var matches = ModInit.database.Where(e => (imdb_id != null && e.Value.imdb == imdb_id) || e.Value.kp == _kp).ToList();
+                if (matches.Count != 0)
                 {
                     var model = new SearchModel()
                     {
                         similar = new List<SimilarModel>()
                     };
 
-                    foreach (var entry in dbEntry)
+                    foreach (var entry in matches)
                     {
                         model.similar.Add(new SimilarModel()
                         {
@@ -179,7 +179,7 @@ public class PizdatoeHDController : BaseOnlineController<ModuleConf>
                         if (await GotoLinkAsync(page, href))
                             html = await page.ContentAsync();
                     }
-
+                    
                     if (html == null || !html.Contains("b-sidecover"))
                     {
                         if (page == null)

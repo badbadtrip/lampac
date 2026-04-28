@@ -19,8 +19,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
-using System.Runtime;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -36,7 +34,7 @@ public class Program
 
     public static ConcurrentBag<(IPAddress prefix, int prefixLength)> cloudflare_ips = new();
 
-    static Timer _usersTimer, _lowMemoryModeTimer;
+    static Timer _usersTimer;
     #endregion
 
     #region Run
@@ -46,26 +44,17 @@ public class Program
     {
         string refs = Path.Combine(AppContext.BaseDirectory, "runtimes", "references");
 
-        if (Directory.Exists(refs))
+        AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
         {
-            foreach (string dllPath in Directory.GetFiles(refs, "*.dll"))
+            foreach (string name in new string[] { $"ru/{assemblyName.Name}", assemblyName.Name })
             {
-                var loadedAssembly = Assembly.LoadFrom(dllPath);
-                AssemblyLocations.Add(loadedAssembly.Location);
+                string assemblyPath = Path.Combine(refs, $"{name}.dll");
+                if (File.Exists(assemblyPath))
+                    return context.LoadFromAssemblyPath(assemblyPath);
             }
 
-            AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
-            {
-                foreach (string name in new string[] { $"ru/{assemblyName.Name}", assemblyName.Name })
-                {
-                    string assemblyPath = Path.Combine(refs, name);
-                    if (File.Exists(assemblyPath))
-                        return context.LoadFromAssemblyPath(assemblyPath);
-                }
-
-                return null;
-            };
-        }
+            return null;
+        };
 
         Run(args);
     }
@@ -138,12 +127,15 @@ public class Program
         #endregion
 
         #region ThreadPool
-        int cpu = Environment.ProcessorCount;
-        ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-        ThreadPool.SetMinThreads(
-            workerThreads: Math.Max(workerThreads, cpu * 16),
-            completionPortThreads: Math.Max(completionPortThreads, cpu * 8)
-        );
+        if (CoreInit.conf.lowMemoryMode == false)
+        {
+            int cpu = Environment.ProcessorCount;
+            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+            ThreadPool.SetMinThreads(
+                workerThreads: Math.Max(workerThreads, cpu * 16),
+                completionPortThreads: Math.Max(completionPortThreads, cpu * 8)
+            );
+        }
         #endregion
 
         #region passwd
@@ -224,18 +216,9 @@ public class Program
         Staticache.Initialization();
         HybridFileCache.LoadCache();
 
-        _usersTimer = new Timer(UpdateUsersDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        GCMode.Initialization();
 
-        if (CoreInit.conf.lowMemoryMode)
-        {
-            _lowMemoryModeTimer = new Timer(_ =>
-            {
-                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-                GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
-            }, null, TimeSpan.FromHours(1), TimeSpan.FromHours(1));
-        }
+        _usersTimer = new Timer(UpdateUsersDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 
         try
         {

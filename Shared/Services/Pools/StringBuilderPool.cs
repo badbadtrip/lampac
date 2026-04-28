@@ -58,10 +58,11 @@ public static class StringBuilderPool
     {
         get
         {
-            if (CoreInit.conf.lowMemoryMode)
-                return new StringBuilder();
+            int capacity = CoreInit.conf.lowMemoryMode
+                ? 0
+                : 1024;
 
-            var sb = (_threadSmall ??= new StringBuilder(1024));
+            var sb = _threadSmall ??= new StringBuilder(capacity);
             sb.Clear();
             return sb;
         }

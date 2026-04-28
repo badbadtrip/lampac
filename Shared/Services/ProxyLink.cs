@@ -38,7 +38,7 @@ public class ProxyLink : IProxyLink
 
         string uri_clear = uri.Contains("#") ? uri.Split("#")[0].Trim() : uri.Trim();
 
-        StringBuilder hash = (_threadHashBuilder ??= new StringBuilder(1024));
+        StringBuilder hash = _threadHashBuilder ??= new StringBuilder(CoreInit.conf.lowMemoryMode ? 0 : 1024);
         hash.Clear();
 
         if (plugin == "posterapi")
@@ -427,7 +427,7 @@ public class ProxyLink : IProxyLink
                     links.TryRemove(link.Key, out _);
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Serilog.Log.Error(ex, "{Class} {CatchId}", "ProxyLink", "id_s1dvs8n1");
         }

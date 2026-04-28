@@ -18,7 +18,8 @@ public static class JsonConvertPool
                     ArrayPool = NewtonsoftPool.Array
                 })
                 {
-                    JsonDefaultSerializerPool.Instance.Serialize(jw, value);
+                    var serializer = JsonSerializer.CreateDefault();
+                    serializer.Serialize(jw, value);
                 }
 
                 return sb.ToString();

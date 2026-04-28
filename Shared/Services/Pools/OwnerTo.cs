@@ -53,9 +53,11 @@ public static class OwnerTo
             int totalChars = 0;
             bool reachedEof = false;
 
-            Span<byte> buff = CoreInit.conf.lowMemoryMode
-                ? new byte[1024]
-                : (_thread ??= new byte[PoolInvk.bufferSize]);
+            int bufferSize = CoreInit.conf.lowMemoryMode
+                ? 1024
+                : PoolInvk.bufferSize;
+
+            Span<byte> buff = _thread ??= new byte[bufferSize];
 
             while (totalChars < destination.Length)
             {

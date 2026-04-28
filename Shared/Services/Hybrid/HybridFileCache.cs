@@ -154,7 +154,8 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                                                 ArrayPool = NewtonsoftPool.Array
                                             })
                                             {
-                                                JsonDefaultSerializerPool.Instance.Serialize(jw, tdb.Value.value);
+                                                var serializer = Newtonsoft.Json.JsonSerializer.CreateDefault();
+                                                serializer.Serialize(jw, tdb.Value.value);
                                             }
                                         }
                                     }
@@ -408,7 +409,7 @@ public class HybridFileCache : BaseHybridCache, IHybridCache
                                     ArrayPool = NewtonsoftPool.Array
                                 })
                                 {
-                                    var serializer = JsonDefaultSerializerPool.Instance;
+                                    var serializer = Newtonsoft.Json.JsonSerializer.CreateDefault();
 
                                     if (IsCapacityCollection(type) && _cache.capacity > 0)
                                     {

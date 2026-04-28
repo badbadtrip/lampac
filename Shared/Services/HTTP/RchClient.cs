@@ -178,8 +178,8 @@ public class RchClient
                         })
                         {
                             var serializer = IgnoreDeserializeObject
-                                ? JsonIgnoreDeserializePool.Instance
-                                : JsonDefaultSerializerPool.Instance;
+                                ? Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } })
+                                : Newtonsoft.Json.JsonSerializer.CreateDefault();
 
                             result = serializer.Deserialize<T>(jsonReader);
                         }
@@ -222,7 +222,8 @@ public class RchClient
                             ArrayPool = NewtonsoftPool.Array
                         })
                         {
-                            var job = JsonDefaultSerializerPool.Instance.Deserialize<JObject>(jsonReader);
+                            var serializer = Newtonsoft.Json.JsonSerializer.CreateDefault();
+                            var job = serializer.Deserialize<JObject>(jsonReader);
                             if (!job.ContainsKey("body"))
                                 return;
 
@@ -273,8 +274,8 @@ public class RchClient
                             })
                             {
                                 var serializer = IgnoreDeserializeObject
-                                    ? JsonIgnoreDeserializePool.Instance
-                                    : JsonDefaultSerializerPool.Instance;
+                                    ? Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } })
+                                    : Newtonsoft.Json.JsonSerializer.CreateDefault();
 
                                 result = serializer.Deserialize<T>(jsonReader);
                             }
@@ -336,8 +337,8 @@ public class RchClient
                             })
                             {
                                 var serializer = IgnoreDeserializeObject
-                                    ? JsonIgnoreDeserializePool.Instance
-                                    : JsonDefaultSerializerPool.Instance;
+                                    ? Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } })
+                                    : Newtonsoft.Json.JsonSerializer.CreateDefault();
 
                                 result = serializer.Deserialize<T>(jsonReader);
                             }

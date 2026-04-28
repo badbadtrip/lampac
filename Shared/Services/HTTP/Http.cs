@@ -412,8 +412,8 @@ public static class Http
                             })
                             {
                                 var serializer = IgnoreDeserializeObject
-                                    ? JsonIgnoreDeserializePool.Instance
-                                    : JsonDefaultSerializerPool.Instance;
+                                    ? Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } })
+                                    : Newtonsoft.Json.JsonSerializer.CreateDefault();
 
                                 result = serializer.Deserialize<T>(jsonReader);
                             }
@@ -846,8 +846,8 @@ public static class Http
                             })
                             {
                                 var serializer = IgnoreDeserializeObject
-                                    ? JsonIgnoreDeserializePool.Instance
-                                    : JsonDefaultSerializerPool.Instance;
+                                    ? Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } })
+                                    : Newtonsoft.Json.JsonSerializer.CreateDefault();
 
                                 result = serializer.Deserialize<T>(jsonReader);
                             }
