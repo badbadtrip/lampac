@@ -129,15 +129,11 @@ public class PizdaInvoke
 
         if (!html.Contains("data-season_id=", StringComparison.Ordinal))
         {
-            var rx = Rx.Split("ctrl_token_id", html);
-            if (rx.Count > 0)
-            {
-                var row = Rx.Split("translators-list", rx[0].Span);
-                if (row.Count > 1)
-                    result.content = row[1].ToString(); // фильм
-                else
-                    result.content = rx[1].Span.ToString();
-            }
+            var row = Rx.Split("translators-list", html);
+            if (row.Count > 1 && row[1].Contains("\"id\":\"cdnplayer\","))
+                result.content = row[1].ToString(); // фильм
+            else
+                result.content = html;
         }
         else
         {
@@ -287,7 +283,8 @@ public class PizdaInvoke
         if (!result.content.Contains("data-season_id="))
         {
             #region Фильм
-            var match = new Regex("<[^>]+ data-translator_id=\"([0-9]+)\"([^>]+)?>(?<voice>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?").Match(result.content);
+            string translators_list = Rx.Split("ctrl_token_id", result.content)[0].ToString();
+            var match = new Regex("<[^>]+ data-translator_id=\"([0-9]+)\"([^>]+)?>(?<voice>[^<]+)(<img title=\"(?<imgname>[^\"]+)\" [^>]+/>)?").Match(translators_list);
 
             var mtpl = new MovieTpl(title, original_title, match.Length);
 
