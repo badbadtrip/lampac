@@ -181,6 +181,8 @@ usage() {
     "$C_CYAN" "$C_RESET" "$C_DIM" "$C_RESET"
   printf '  %sLAMPAC_PORT%s          HTTP port hint                  %s(default: %s)%s\n' \
     "$C_CYAN" "$C_RESET" "$C_DIM" "$LISTEN_PORT" "$C_RESET"
+  printf '  %sLAMPAC_CONFIRM_REMOVE%s  Set to 1 to skip the %s--remove%s confirmation prompt %s(non-interactive)%s\n' \
+    "$C_CYAN" "$C_RESET" "$C_GREEN" "$C_RESET" "$C_DIM" "$C_RESET"
   printf '\n'
 
   printf '%sOptions:%s\n' "$C_BOLD" "$C_RESET"
@@ -709,7 +711,14 @@ do_remove() {
   printf '  %sService:%s   %s\n\n' "$C_BOLD" "$C_RESET" "$SERVICE_NAME"
   printf '  Press %sEnter%s to continue, or %sCtrl-C%s to abort: ' \
     "$C_BOLD" "$C_RESET" "$C_RED" "$C_RESET"
-  read -r
+  if [[ "${LAMPAC_CONFIRM_REMOVE:-}" != "1" ]]; then
+    if [[ -r /dev/tty ]]; then
+      read -r </dev/tty
+    else
+      log_err "Cannot prompt for confirmation (no TTY). Use an interactive shell, or set LAMPAC_CONFIRM_REMOVE=1 for non-interactive removal."
+      exit 1
+    fi
+  fi
 
   remove_service
   remove_app
