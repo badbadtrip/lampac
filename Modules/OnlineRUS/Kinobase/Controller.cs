@@ -110,7 +110,7 @@ public class KinobaseController : BaseOnlineController<ModuleConf>
                 {
                     try
                     {
-                        if (route.Request.Url.Contains("/playerjs.js"))
+                        if (route.Request.Url.Contains("/playerjs."))
                         {
                             await route.FulfillAsync(new RouteFulfillOptions
                             {
