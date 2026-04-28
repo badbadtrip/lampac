@@ -48,10 +48,7 @@ public class Program
         if (Directory.Exists(refs))
         {
             foreach (string dllPath in Directory.GetFiles(refs, "*.dll"))
-            {
-                var loadedAssembly = Assembly.LoadFrom(dllPath);
-                AssemblyLocations.Add(loadedAssembly.Location);
-            }
+                AssemblyLocations.Add(dllPath);
 
             AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
             {
@@ -59,7 +56,10 @@ public class Program
                 {
                     string assemblyPath = Path.Combine(refs, $"{name}.dll");
                     if (File.Exists(assemblyPath))
+                    {
+                        AssemblyLocations.Add(assemblyPath);
                         return context.LoadFromAssemblyPath(assemblyPath);
+                    }
                 }
 
                 return null;
@@ -72,6 +72,12 @@ public class Program
     public static void Run(string[] args)
     {
         #region appReferences
+        if (CoreInit.conf.lowMemoryMode == false)
+        {
+            foreach (string aslPath in AssemblyLocations)
+                Assembly.LoadFrom(aslPath);
+        }
+
         CSharpEval.appReferences = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -79,8 +85,8 @@ public class Program
             .Select(path => MetadataReference.CreateFromFile(path))
             .ToList();
 
-        foreach (var asl in AssemblyLocations)
-            CSharpEval.appReferences.Add(MetadataReference.CreateFromFile(asl));
+        foreach (string aslPath in AssemblyLocations)
+            CSharpEval.appReferences.Add(MetadataReference.CreateFromFile(aslPath));
         #endregion
 
         CultureInfo.CurrentCulture = new CultureInfo("ru-RU");

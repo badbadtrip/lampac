@@ -120,7 +120,7 @@ public static class CSharpEval
 
             if (Directory.Exists(path))
             {
-                var sumhash = new StringBuilder("23042026");
+                var sumhash = new StringBuilder("28042026");
 
                 #region syntaxTree
                 var syntaxTree = new List<SyntaxTree>();
