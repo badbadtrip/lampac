@@ -19,6 +19,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -44,17 +45,26 @@ public class Program
     {
         string refs = Path.Combine(AppContext.BaseDirectory, "runtimes", "references");
 
-        AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
+        if (Directory.Exists(refs))
         {
-            foreach (string name in new string[] { $"ru/{assemblyName.Name}", assemblyName.Name })
+            foreach (string dllPath in Directory.GetFiles(refs, "*.dll"))
             {
-                string assemblyPath = Path.Combine(refs, $"{name}.dll");
-                if (File.Exists(assemblyPath))
-                    return context.LoadFromAssemblyPath(assemblyPath);
+                var loadedAssembly = Assembly.LoadFrom(dllPath);
+                AssemblyLocations.Add(loadedAssembly.Location);
             }
 
-            return null;
-        };
+            AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
+            {
+                foreach (string name in new string[] { $"ru/{assemblyName.Name}", assemblyName.Name })
+                {
+                    string assemblyPath = Path.Combine(refs, $"{name}.dll");
+                    if (File.Exists(assemblyPath))
+                        return context.LoadFromAssemblyPath(assemblyPath);
+                }
+
+                return null;
+            };
+        }
 
         Run(args);
     }
