@@ -65,8 +65,6 @@ log_skip()    { printf '  %s·%s  %s%s%s\n' "$C_GRAY"   "$C_RESET" "$C_DIM" "$*"
 log_del()     { printf '  %s−%s  %s%s%s\n' "$C_RED"    "$C_RESET" "$C_DIM" "$*" "$C_RESET"; }
 log_upd()     { printf '  %s+%s  %s\n'     "$C_GREEN"  "$C_RESET" "$*"; }
 
-# Запускает команду со спиннером; вывод скрыт, при ошибке показывает последние строки.
-# В режиме --verbose запускает напрямую без подавления вывода.
 run_quiet() {
   local label="$1"; shift
   if [[ "$VERBOSE" -eq 1 ]]; then
@@ -97,7 +95,7 @@ run_quiet() {
 
 step() {
   local n="$1" total="$2" label="$3"
-  local cols prefix suffix pad_len padding
+  local cols prefix pad_len padding
   cols=$(tput cols 2>/dev/null || echo 80)
   prefix="━━━ [${n}/${total}] ${label} "
   pad_len=$(( cols / 2 - ${#prefix} ))
