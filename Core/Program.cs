@@ -56,10 +56,7 @@ public class Program
                 {
                     string assemblyPath = Path.Combine(refs, $"{name}.dll");
                     if (File.Exists(assemblyPath))
-                    {
-                        AssemblyLocations.Add(assemblyPath);
                         return context.LoadFromAssemblyPath(assemblyPath);
-                    }
                 }
 
                 return null;
@@ -72,12 +69,6 @@ public class Program
     public static void Run(string[] args)
     {
         #region appReferences
-        if (CoreInit.conf.lowMemoryMode == false)
-        {
-            foreach (string aslPath in AssemblyLocations)
-                Assembly.LoadFrom(aslPath);
-        }
-
         CSharpEval.appReferences = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -86,7 +77,12 @@ public class Program
             .ToList();
 
         foreach (string aslPath in AssemblyLocations)
+        {
+            if (CoreInit.conf.lowMemoryMode == false)
+                Assembly.LoadFrom(aslPath);
+
             CSharpEval.appReferences.Add(MetadataReference.CreateFromFile(aslPath));
+        }
         #endregion
 
         CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
